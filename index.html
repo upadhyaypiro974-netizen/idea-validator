@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Turn a startup idea into an evidence-based validation plan in five minutes."
+      content="Research competitors, customer evidence and market gaps before testing your startup idea."
     />
     <meta name="theme-color" content="#f5f3ee" />
     <title>IdeaProof — Is your idea worth building?</title>
@@ -36,8 +36,8 @@
           <div class="eyebrow"><span></span> A reality check before you build</div>
           <h1 id="hero-title">Is your idea worth <em>building?</em></h1>
           <p class="hero-lede">
-            Answer six focused questions. Get an honest score, the biggest risk to test,
-            and a practical 7-day validation plan—made around your idea.
+            Describe your idea in six focused questions. Explore competitors, public customer evidence,
+            possible gaps and a practical 7-day validation plan—with source links.
           </p>
           <div class="hero-actions">
             <button class="primary-button" data-start>Check my idea <span aria-hidden="true">→</span></button>
@@ -48,21 +48,21 @@
           </div>
         </div>
 
-        <div class="hero-visual" aria-label="Example startup scorecard">
+        <div class="hero-visual" aria-label="Illustrative market evidence report">
           <div class="orbit orbit-one" aria-hidden="true"></div>
           <div class="orbit orbit-two" aria-hidden="true"></div>
           <div class="score-card tilt-card">
-            <div class="card-kicker"><span class="live-dot"></span> SAMPLE REPORT</div>
+            <div class="card-kicker"><span class="live-dot"></span> ILLUSTRATIVE REPORT</div>
             <div class="score-row">
-              <div class="score-ring mini" style="--score: 76">
-                <span>76<small>/100</small></span>
+              <div class="score-ring mini" style="--score: 0">
+                <span>3<small> sources</small></span>
               </div>
-              <div><b>Promising</b><p>Validate demand before building.</p></div>
+              <div><b>Evidence first</b><p>Research, then test demand.</p></div>
             </div>
             <div class="signal-list">
-              <div><span>Problem clarity</span><strong class="good">Strong</strong></div>
-              <div><span>Demand evidence</span><strong class="warn">Needs proof</strong></div>
-              <div><span>Reachability</span><strong class="good">Strong</strong></div>
+              <div><span>Competitors</span><strong class="good">Sources</strong></div>
+              <div><span>Customer evidence</span><strong class="warn">Check context</strong></div>
+              <div><span>Market gaps</span><strong class="good">Sources</strong></div>
             </div>
           </div>
           <div class="floating-tag tag-one">No generic advice</div>
@@ -76,7 +76,7 @@
             <div class="eyebrow"><span></span> Your idea, under the lens</div>
             <h2 id="validator-title">Find the weak link <em>early.</em></h2>
           </div>
-          <p>One question at a time. Your answers shape the score and next steps.</p>
+          <p>One question at a time. Your answers focus the research and next steps.</p>
         </div>
 
         <div class="validator-shell" id="quiz-shell">
@@ -89,7 +89,7 @@
             <div class="steps" aria-label="Question progress">
               <span class="active"></span><span></span><span></span><span></span><span></span><span></span>
             </div>
-            <p class="privacy-note"><span aria-hidden="true">⌁</span> Your answers stay in this browser.</p>
+            <p class="privacy-note"><span aria-hidden="true">⌁</span> Your answers are sent to Google Gemini for research. Avoid confidential details.</p>
           </aside>
 
           <div class="quiz-panel">
@@ -100,77 +100,53 @@
 
             <form id="quiz-form" novalidate>
               <div class="question active" data-step="1">
-                <label for="idea">Describe your startup idea in one sentence.</label>
-                <p class="field-help">Simple is better. You can polish it later.</p>
-                <textarea id="idea" name="idea" maxlength="220" rows="4" placeholder="Example: A tool that turns customer interviews into clear product decisions." required></textarea>
-                <div class="input-meta"><span id="idea-error" class="error" role="alert"></span><span id="idea-count">0 / 220</span></div>
+                <label for="idea">What problem does your idea solve, and how?</label>
+                <p class="field-help">Describe the problem and your proposed solution. No need for a polished pitch.</p>
+                <textarea id="idea" name="idea" maxlength="1200" rows="4" placeholder="Example: Help independent clinics follow up missed appointment calls without hiring a full-time receptionist." required aria-describedby="idea-error"></textarea>
+                <div class="input-meta"><span id="idea-error" class="error" role="alert"></span><span id="idea-count">0 / 1200</span></div>
               </div>
-
               <div class="question" data-step="2">
-                <label for="audience">Who feels this problem most?</label>
-                <p class="field-help">Name a specific group, not “everyone.”</p>
-                <input id="audience" name="audience" maxlength="90" placeholder="Example: Solo SaaS founders with early users" required />
-                <div class="input-meta"><span id="audience-error" class="error" role="alert"></span><span id="audience-count">0 / 90</span></div>
+                <label for="audience">Who would use it—and who would pay?</label>
+                <p class="field-help">Be specific about the buyer, their work and the situation.</p>
+                <textarea id="audience" name="audience" maxlength="400" rows="4" placeholder="Example: Owners of small dental clinics with 2–5 staff" required aria-describedby="audience-error"></textarea>
+                <div class="input-meta"><span id="audience-error" class="error" role="alert"></span><span id="audience-count">0 / 400</span></div>
               </div>
-
-              <fieldset class="question" data-step="3">
-                <legend>How often does this problem happen?</legend>
-                <p class="field-help">Frequent problems usually create stronger urgency.</p>
-                <div class="option-grid">
-                  <label class="option"><input type="radio" name="frequency" value="daily" /><span><b>Daily</b><small>It interrupts work or life often</small></span><i>+25</i></label>
-                  <label class="option"><input type="radio" name="frequency" value="weekly" /><span><b>Weekly</b><small>It comes up regularly</small></span><i>+19</i></label>
-                  <label class="option"><input type="radio" name="frequency" value="monthly" /><span><b>Monthly</b><small>It matters, but not often</small></span><i>+11</i></label>
-                  <label class="option"><input type="radio" name="frequency" value="rarely" /><span><b>Rarely</b><small>Only in special situations</small></span><i>+4</i></label>
-                </div>
-                <span class="error choice-error" id="frequency-error" role="alert"></span>
-              </fieldset>
-
-              <fieldset class="question" data-step="4">
-                <legend>What proof do you have that people want it?</legend>
-                <p class="field-help">Choose the strongest signal you already have.</p>
-                <div class="option-grid">
-                  <label class="option"><input type="radio" name="evidence" value="paid" /><span><b>Paid or pre-ordered</b><small>Someone has committed money</small></span><i>+25</i></label>
-                  <label class="option"><input type="radio" name="evidence" value="interviews" /><span><b>User interviews</b><small>5+ people described this pain</small></span><i>+19</i></label>
-                  <label class="option"><input type="radio" name="evidence" value="interest" /><span><b>Early interest</b><small>Clicks, signups, or positive replies</small></span><i>+12</i></label>
-                  <label class="option"><input type="radio" name="evidence" value="assumption" /><span><b>It’s an assumption</b><small>I have not tested it yet</small></span><i>+3</i></label>
-                </div>
-                <span class="error choice-error" id="evidence-error" role="alert"></span>
-              </fieldset>
-
-              <fieldset class="question" data-step="5">
-                <legend>How do people solve this problem today?</legend>
-                <p class="field-help">Competition is useful—it proves people care.</p>
-                <div class="option-grid">
-                  <label class="option"><input type="radio" name="alternative" value="painful" /><span><b>Painful workaround</b><small>Spreadsheets, manual work, or many tools</small></span><i>+15</i></label>
-                  <label class="option"><input type="radio" name="alternative" value="expensive" /><span><b>Expensive solution</b><small>Options exist but feel overpriced</small></span><i>+13</i></label>
-                  <label class="option"><input type="radio" name="alternative" value="satisfied" /><span><b>Good existing tools</b><small>Users are mostly satisfied already</small></span><i>+6</i></label>
-                  <label class="option"><input type="radio" name="alternative" value="unknown" /><span><b>I’m not sure</b><small>I need to research alternatives</small></span><i>+4</i></label>
-                </div>
-                <span class="error choice-error" id="alternative-error" role="alert"></span>
-              </fieldset>
-
-              <fieldset class="question" data-step="6">
-                <legend>Can you reach your first 20 potential users?</legend>
-                <p class="field-help">A reachable audience is more valuable than a huge one.</p>
-                <div class="option-grid">
-                  <label class="option"><input type="radio" name="reach" value="direct" /><span><b>Yes, directly</b><small>I know where they are and can contact them</small></span><i>+20</i></label>
-                  <label class="option"><input type="radio" name="reach" value="channel" /><span><b>I know the channel</b><small>A community, platform, or partner</small></span><i>+15</i></label>
-                  <label class="option"><input type="radio" name="reach" value="ideas" /><span><b>I have a few ideas</b><small>But no reliable route yet</small></span><i>+9</i></label>
-                  <label class="option"><input type="radio" name="reach" value="unsure" /><span><b>Not yet</b><small>I don’t know where to find them</small></span><i>+3</i></label>
-                </div>
-                <span class="error choice-error" id="reach-error" role="alert"></span>
-              </fieldset>
+              <div class="question" data-step="3">
+                <label for="geography">Where will you launch first?</label>
+                <p class="field-help">Name a country, city or clearly defined online market.</p>
+                <textarea id="geography" name="geography" maxlength="200" rows="4" placeholder="Example: Dental clinics in Lucknow, India" required aria-describedby="geography-error"></textarea>
+                <div class="input-meta"><span id="geography-error" class="error" role="alert"></span><span id="geography-count">0 / 200</span></div>
+              </div>
+              <div class="question" data-step="4">
+                <label for="alternatives">What do they use today?</label>
+                <p class="field-help">Name competitors or manual workarounds. Add public links if useful; write “not sure” if unknown.</p>
+                <textarea id="alternatives" name="alternatives" maxlength="700" rows="4" placeholder="Example: A receptionist, WhatsApp reminders, or a clinic management tool" required aria-describedby="alternatives-error"></textarea>
+                <div class="input-meta"><span id="alternatives-error" class="error" role="alert"></span><span id="alternatives-count">0 / 700</span></div>
+              </div>
+              <div class="question" data-step="5">
+                <label for="difference">Why would someone switch to your solution?</label>
+                <p class="field-help">Describe your advantage, proposed price or constraint. “Not sure yet” is fine.</p>
+                <textarea id="difference" name="difference" maxlength="700" rows="4" placeholder="Example: Hindi and English call handling, with a proposed ₹3,000 monthly price" required aria-describedby="difference-error"></textarea>
+                <div class="input-meta"><span id="difference-error" class="error" role="alert"></span><span id="difference-count">0 / 700</span></div>
+              </div>
+              <div class="question" data-step="6">
+                <label for="evidence">What have real customers actually done?</label>
+                <p class="field-help">Summarize interviews, signups, payments or objections. Do not include private names or contact details.</p>
+                <textarea id="evidence" name="evidence" maxlength="1200" rows="4" placeholder="Example: No evidence yet. Or: Spoke with 5 clinic owners; 3 report missed calls, none has paid." required aria-describedby="evidence-error"></textarea>
+                <div class="input-meta"><span id="evidence-error" class="error" role="alert"></span><span id="evidence-count">0 / 1200</span></div>
+              </div>
 
               <div class="quiz-actions">
                 <button type="button" class="back-button hidden" id="back-button"><span aria-hidden="true">←</span> Back</button>
                 <button type="button" class="next-button" id="next-button">Continue <span aria-hidden="true">→</span></button>
               </div>
+              <p id="research-status" class="field-help" role="status" aria-live="polite"></p>
             </form>
 
             <section class="results hidden" id="results" aria-live="polite" aria-labelledby="result-title">
               <div class="result-header">
                 <div class="score-ring" id="score-ring" style="--score: 0">
-                  <span><b id="score-value">0</b><small>/100</small></span>
+                  <span><b id="score-value">0</b><small> sources</small></span>
                 </div>
                 <div>
                   <p class="result-kicker" id="result-kicker">YOUR VERDICT</p>
@@ -183,7 +159,7 @@
 
               <div class="result-grid">
                 <article class="result-card strength-card">
-                  <div class="card-icon">✓</div><div><span>STRONGEST SIGNAL</span><h4 id="strength-title"></h4><p id="strength-copy"></p></div>
+                  <div class="card-icon">✓</div><div><span>POSSIBLE OPENING · INFERENCE</span><h4 id="strength-title"></h4><p id="strength-copy"></p></div>
                 </article>
                 <article class="result-card risk-card">
                   <div class="card-icon">!</div><div><span>BIGGEST RISK</span><h4 id="risk-title"></h4><p id="risk-copy"></p></div>
@@ -196,13 +172,14 @@
                 <div class="time-pill">This week</div>
               </article>
 
+              <div id="research-details"></div>
               <div class="upgrade-card">
                 <div>
                   <span class="upgrade-label">GO FROM IDEA → EVIDENCE</span>
-                  <h3>Build your complete validation plan.</h3>
-                  <p>Get unlimited idea checks, interview scripts, competitor prompts, and a personalized 7-day action plan for 3 months.</p>
+                  <h3>Keep your research and test plan.</h3>
+                  <p>Download the findings, source links, limitations and proposed tests. Revisit them after speaking with real buyers.</p>
                 </div>
-                <div class="price-block"><div><strong>$5</strong><span>one-time<br />3 months</span></div><button type="button" class="upgrade-button" id="upgrade-button">Start for $5 <span>→</span></button><small>No subscription</small></div>
+                <div class="price-block"><div><strong>Save</strong><span>your<br />research</span></div><button type="button" class="upgrade-button" id="upgrade-button">Download report <span>↓</span></button><small>Text file with source links</small></div>
               </div>
             </section>
           </div>
@@ -222,15 +199,7 @@
       <p>© 2026 IdeaProof</p>
     </footer>
 
-    <dialog id="checkout-dialog">
-      <button class="dialog-close" id="dialog-close" aria-label="Close">×</button>
-      <div class="dialog-icon">↗</div>
-      <p class="result-kicker">FOUNDER ACCESS</p>
-      <h2>Continue with the $5 plan</h2>
-      <p>Connect your secure payment link here to start accepting customers. This preview does not collect payment.</p>
-      <button class="primary-button dialog-button" id="dialog-done">Got it</button>
-    </dialog>
-
     <script src="app.js"></script>
   </body>
 </html>
+

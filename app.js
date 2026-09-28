@@ -1,202 +1,177 @@
-const form = document.querySelector("#quiz-form");
-const questions = [...document.querySelectorAll(".question")];
-const stepBars = [...document.querySelectorAll(".steps span")];
-const nextButton = document.querySelector("#next-button");
-const backButton = document.querySelector("#back-button");
-const restartButton = document.querySelector("#restart-button");
-const results = document.querySelector("#results");
-const checkoutDialog = document.querySelector("#checkout-dialog");
-let currentStep = 1;
-
-const asideContent = [
-  ["Let’s understand the idea.", "Start with the simplest version—what are you making and for whom?"],
-  ["Specific beats broad.", "A narrow first audience makes your message, product, and outreach clearer."],
-  ["Is the pain frequent?", "Problems that happen often are easier for people to remember—and pay to solve."],
-  ["Evidence changes everything.", "Real behavior is a stronger signal than compliments or personal excitement."],
-  ["Look at today’s workaround.", "What people already use reveals both demand and your opening."],
-  ["Distribution is part of the idea.", "A great product still needs a realistic route to its first users."]
+const $ = selector => document.querySelector(selector);
+const form = $('#quiz-form');
+const results = $('#results');
+const nextButton = $('#next-button');
+const backButton = $('#back-button');
+const restartButton = $('#restart-button');
+const fields = ['idea','audience','geography','alternatives','difference','evidence'];
+const minimums = [20,5,2,2,2,2];
+const aside = [
+  ['What are you solving?', 'Describe the problem, what your product does, and when someone would use it.'],
+  ['Start with one buyer.', 'Name the people who would use it and who would actually pay.'],
+  ['Choose a real market.', 'Competitors, pricing and customer needs differ by country and city.'],
+  ['Look at today’s workaround.', 'Include competitors, spreadsheets, agencies, or doing nothing. “Not sure” is fine.'],
+  ['Give users a reason to switch.', 'What would improve enough for someone to leave their current solution?'],
+  ['Separate proof from belief.', 'Summarize interviews, signups or payments. “No evidence yet” is a useful answer.']
 ];
-
-const scoreMap = {
-  frequency: { daily: 25, weekly: 19, monthly: 11, rarely: 4 },
-  evidence: { paid: 25, interviews: 19, interest: 12, assumption: 3 },
-  alternative: { painful: 15, expensive: 13, satisfied: 6, unknown: 4 },
-  reach: { direct: 20, channel: 15, ideas: 9, unsure: 3 }
-};
-
-const copyMap = {
-  frequency: {
-    daily: ["High-frequency problem", "The pain appears often enough to stay top of mind."],
-    weekly: ["Recurring problem", "Users are likely to notice this pain regularly."],
-    monthly: ["Lower urgency", "The problem may need a sharper trigger or higher value."],
-    rarely: ["Weak frequency", "People may delay solving a problem they rarely feel."]
-  },
-  evidence: {
-    paid: ["Real buying behavior", "Money committed is your strongest demand signal."],
-    interviews: ["User-backed pain", "Repeated interview patterns give the idea a credible base."],
-    interest: ["Early attention", "Interest is useful, but needs a stronger commitment test."],
-    assumption: ["Unproven demand", "The idea still depends mostly on what you believe users want."]
-  },
-  alternative: {
-    painful: ["A broken workaround", "Manual or fragmented solutions create room for a better option."],
-    expensive: ["A price opening", "Existing spend proves value and creates a clear comparison."],
-    satisfied: ["Strong incumbents", "Happy users need a very clear reason to switch."],
-    unknown: ["Unmapped market", "You need to learn what users currently choose and why."]
-  },
-  reach: {
-    direct: ["Reachable first users", "You can test demand without waiting for a large audience."],
-    channel: ["Visible distribution path", "You know where to start earning attention."],
-    ideas: ["Uncertain acquisition", "A few possible channels need to become one repeatable route."],
-    unsure: ["No route to users", "The first audience is defined, but not yet reachable."]
-  }
-};
-
-function selected(name) {
-  return form.querySelector(`input[name="${name}"]:checked`)?.value;
+let step = 1;
+let busy = false;
+let controller;
+let savedResearch = null;
+let lastReport;
+const status = $('#research-status');
+function updateStep(value) {
+  step = value;
+  document.querySelectorAll('.question').forEach((node, i) => node.classList.toggle('active', i + 1 === step));
+  document.querySelectorAll('.steps span').forEach((node, i) => node.classList.toggle('active', i < step));
+  $('#step-label').textContent = `QUESTION ${step} OF 6`;
+  $('#aside-title').textContent = aside[step - 1][0];
+  $('#aside-copy').textContent = aside[step - 1][1];
+  backButton.classList.toggle('hidden', step === 1);
+  nextButton.textContent = step === 6 ? 'Research my idea →' : 'Continue →';
 }
-
-function updateStep(step) {
-  currentStep = step;
-  questions.forEach((question, index) => question.classList.toggle("active", index === step - 1));
-  stepBars.forEach((bar, index) => bar.classList.toggle("active", index < step));
-  document.querySelector("#step-label").textContent = `QUESTION ${step} OF 6`;
-  document.querySelector("#aside-title").textContent = asideContent[step - 1][0];
-  document.querySelector("#aside-copy").textContent = asideContent[step - 1][1];
-  backButton.classList.toggle("hidden", step === 1);
-  nextButton.innerHTML = step === 6 ? 'See my result <span aria-hidden="true">→</span>' : 'Continue <span aria-hidden="true">→</span>';
-  const focusable = questions[step - 1].querySelector("textarea, input, label");
-  window.setTimeout(() => focusable?.focus({ preventScroll: true }), 120);
-}
-
-function validateStep(step) {
-  if (step === 1 || step === 2) {
-    const id = step === 1 ? "idea" : "audience";
-    const input = document.querySelector(`#${id}`);
-    const error = document.querySelector(`#${id}-error`);
-    const min = step === 1 ? 15 : 3;
-    if (input.value.trim().length < min) {
-      error.textContent = step === 1 ? "Add a little more detail about the idea." : "Tell us who this is for.";
-      input.focus();
-      return false;
-    }
-    error.textContent = "";
-    return true;
+function valid() {
+  const name = fields[step - 1], input = $('#' + name);
+  if (input.value.trim().length < minimums[step - 1]) {
+    $('#' + name + '-error').textContent = 'Add a little more detail to focus the research.';
+    input.focus(); return false;
   }
-  const name = ["", "", "frequency", "evidence", "alternative", "reach"][step - 1];
-  const error = document.querySelector(`#${name}-error`);
-  if (!selected(name)) {
-    error.textContent = "Choose the closest answer to continue.";
-    return false;
-  }
-  error.textContent = "";
   return true;
 }
-
-function calculateResult() {
-  const answers = {
-    frequency: selected("frequency"),
-    evidence: selected("evidence"),
-    alternative: selected("alternative"),
-    reach: selected("reach")
-  };
-  const idea = document.querySelector("#idea").value.trim();
-  const audience = document.querySelector("#audience").value.trim();
-  const clarity = Math.min(15, 8 + Math.floor(idea.split(/\s+/).length / 3) + (audience.split(/\s+/).length >= 3 ? 3 : 0));
-  const dimensions = Object.entries(answers).map(([name, value]) => ({ name, value, score: scoreMap[name][value], copy: copyMap[name][value] }));
-  const total = Math.min(100, clarity + dimensions.reduce((sum, item) => sum + item.score, 0));
-  const strongest = [...dimensions].sort((a, b) => b.score / Math.max(...Object.values(scoreMap[b.name])) - a.score / Math.max(...Object.values(scoreMap[a.name])))[0];
-  const weakest = [...dimensions].sort((a, b) => a.score / Math.max(...Object.values(scoreMap[a.name])) - b.score / Math.max(...Object.values(scoreMap[b.name])))[0];
-
-  let verdict;
-  if (total >= 78) verdict = ["Strong signal", `Your idea shows promising fundamentals for ${audience}. Keep testing before you invest heavily.`];
-  else if (total >= 58) verdict = ["Worth testing", `There is enough signal to keep exploring—but one assumption needs proof before you build.`];
-  else if (total >= 38) verdict = ["Needs evidence", `The idea may work for ${audience}, but the current case relies on several untested assumptions.`];
-  else verdict = ["Pause and learn", `Don’t build yet. A few focused conversations can reveal whether this problem deserves a solution.`];
-
-  const tests = {
-    evidence: ["Run five problem interviews", `Ask five ${audience} about the last time this problem happened. Do not pitch—listen for repeated pain and existing spend.`],
-    frequency: ["Find the urgent moment", `Ask ${audience} when this problem becomes impossible to ignore. Build your first offer around that exact trigger.`],
-    alternative: ["Map three alternatives", `Find three ways ${audience} solves this today. Note what they pay, tolerate, and complain about.`],
-    reach: ["Build a 20-person prospect list", `Choose one community or platform and identify 20 ${audience} you can personally contact this week.`]
-  };
-
-  document.querySelector("#score-value").textContent = total;
-  document.querySelector("#score-ring").style.setProperty("--score", total);
-  document.querySelector("#result-title").textContent = verdict[0];
-  document.querySelector("#result-summary").textContent = verdict[1];
-  document.querySelector("#idea-recap").textContent = idea;
-  document.querySelector("#strength-title").textContent = strongest.copy[0];
-  document.querySelector("#strength-copy").textContent = strongest.copy[1];
-  document.querySelector("#risk-title").textContent = weakest.copy[0];
-  document.querySelector("#risk-copy").textContent = weakest.copy[1];
-  document.querySelector("#test-title").textContent = tests[weakest.name][0];
-  document.querySelector("#test-copy").textContent = tests[weakest.name][1];
+const brief = () => Object.fromEntries(fields.map(name => [name, $('#' + name).value.trim()]));
+async function request(payload) {
+  const res = await fetch('/api/validate', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload), signal:controller.signal });
+  let data;
+  try { data = await res.json(); } catch { throw new Error(res.status === 429 ? 'Too many checks. Please wait three minutes and try again.' : 'The research service is not available yet. Your answers are kept.'); }
+  if (!res.ok) throw new Error(data.error || 'Research could not finish. Please retry.');
+  return data;
 }
-
-function showResults() {
-  calculateResult();
-  form.classList.add("hidden");
-  results.classList.remove("hidden");
-  restartButton.classList.remove("hidden");
-  document.querySelector("#step-label").textContent = "PERSONALIZED RESULT";
-  document.querySelector("#aside-title").textContent = "Your clearest next move.";
-  document.querySelector("#aside-copy").textContent = "A score is only useful when it tells you what to test next.";
-  stepBars.forEach(bar => bar.classList.add("active"));
-  results.scrollIntoView({ behavior: "smooth", block: "center" });
+function setBusy(value) {
+  busy = value;
+  form.setAttribute('aria-busy', String(value));
+  form.querySelectorAll('input, textarea, button').forEach(el => el.disabled = value);
+  nextButton.textContent = value ? 'Researching…' : 'Research my idea →';
 }
-
-nextButton.addEventListener("click", () => {
-  if (!validateStep(currentStep)) return;
-  if (currentStep < 6) updateStep(currentStep + 1);
-  else showResults();
-});
-backButton.addEventListener("click", () => updateStep(Math.max(1, currentStep - 1)));
-
-form.addEventListener("keydown", event => {
-  if (event.key === "Enter" && event.target.tagName !== "TEXTAREA") {
-    event.preventDefault();
-    nextButton.click();
+function element(tag, text, cls) {
+  const el = document.createElement(tag);
+  if (text !== undefined) el.textContent = text;
+  if (cls) el.className = cls;
+  return el;
+}
+function findingCard(item, sources) {
+  const card = element('article', undefined, 'idea-recap');
+  card.append(element('span', `${item.kind.toUpperCase()} · ${item.date || 'Date unknown'}`), element('h4', item.title), element('p', item.detail));
+  if (item.limitation) card.append(element('p', 'Limit: ' + item.limitation));
+  const refs = element('p');
+  for (const id of item.sourceIds) {
+    const source = sources.find(s => s.id === id);
+    if (!source) continue;
+    const link = element('a', `[${id}] ${source.title}`);
+    link.href = source.url; link.target = '_blank'; link.rel = 'noopener noreferrer';
+    refs.append(link, document.createTextNode(' '));
   }
-});
+  card.append(refs);
+  return card;
+}
+function render(report) {
+  lastReport = report;
+  $('#score-value').textContent = report.sources.length;
+  $('#score-ring').style.setProperty('--score', 0);
+  $('#result-title').textContent = report.verdict;
+  $('#result-summary').textContent = report.summary;
+  $('#result-kicker').textContent = 'RESEARCH JUDGMENT · NOT A SUCCESS PREDICTION';
+  $('#idea-recap').textContent = brief().idea;
+  const firstGap = report.gaps[0];
+  $('#strength-title').textContent = firstGap?.title || 'No clear gap established';
+  $('#strength-copy').textContent = firstGap?.detail || 'Research has not established a distinctive opening yet.';
+  const firstRisk = report.risks[0];
+  $('#risk-title').textContent = firstRisk?.title || 'Demand remains unproven';
+  $('#risk-copy').textContent = firstRisk?.detail || 'Public research cannot prove buyers will pay for your product.';
+  // Summary cards are analyst interpretations; the evidence and limitations follow below.
+  $('#test-title').textContent = report.tests[0].title;
+  $('#test-copy').textContent = report.tests[0].action;
+  const details = $('#research-details'); details.replaceChildren();
+  for (const html of report.searchSuggestions || []) {
+    const frame = document.createElement('iframe');
+    frame.title = 'Google Search suggestions';
+    frame.setAttribute('sandbox', 'allow-popups allow-popups-to-escape-sandbox');
+    frame.setAttribute('referrerpolicy', 'no-referrer');
+    frame.style.cssText = 'width:100%;height:160px;border:0;margin:12px 0';
+    frame.srcdoc = `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src https: data:">${html}`;
+    details.append(frame);
+  }
 
-["idea", "audience"].forEach(id => {
-  const input = document.querySelector(`#${id}`);
-  const counter = document.querySelector(`#${id}-count`);
-  input.addEventListener("input", () => {
-    counter.textContent = `${input.value.length} / ${input.maxLength}`;
-    document.querySelector(`#${id}-error`).textContent = "";
+  details.append(element('p', `Research run: ${new Date(report.generatedAt).toLocaleString()}. Links show retrieved sources; publication dates may be older. Findings are AI interpretations and should be checked.`, 'field-help'));
+  for (const [key, label] of [['competitors','Competitors & alternatives'],['customers','Customer evidence'],['market','Market signals'],['gaps','Possible gaps to test'],['risks','Risks & contrary evidence']]) {
+    const section = element('section'); section.append(element('h3', label));
+    if (!report[key].length) section.append(element('p','No sufficiently supported findings in this research run.','field-help'));
+    report[key].forEach(item => section.append(findingCard(item, report.sources)));
+    details.append(section);
+  }
+  const tests = element('section'); tests.append(element('h3','Your seven-day validation tests'), element('p','These thresholds are proposed decision rules, not statistical proof.','field-help'));
+  report.tests.forEach(test => {
+    const card = element('article',undefined,'idea-recap');
+    card.append(element('h4',test.title),element('p',test.action),element('p','Measure: '+test.measure),element('p','Continue if: '+test.pass),element('p','Change course if: '+test.fail));
+    tests.append(card);
   });
+  details.append(tests);
+  const unknowns = element('section'); unknowns.append(element('h3','What we still do not know'));
+  const list = element('ul'); report.unknowns.forEach(x => list.append(element('li',x))); unknowns.append(list); details.append(unknowns);
+  details.append(element('p','Public posts are a selective sample. Competitor traction is not proof of your demand. Test willingness to pay with real prospective buyers.','field-help'));
+  form.classList.add('hidden'); results.classList.remove('hidden'); restartButton.classList.remove('hidden');
+  $('#step-label').textContent = 'SOURCE-LINKED RESEARCH';
+  $('#aside-title').textContent = 'Evidence before commitment.';
+  $('#aside-copy').textContent = 'Read what supports the idea, what challenges it, and what to test next.';
+  results.scrollIntoView({behavior:'smooth',block:'start'});
+}
+async function runResearch() {
+  if (busy) return;
+  const input = brief(), fingerprint = JSON.stringify(input);
+  if (!savedResearch || savedResearch.fingerprint !== fingerprint || savedResearch.expires < Date.now()) savedResearch = {fingerprint, expires:Date.now()+25*60_000, tracks:{}};
+  controller = new AbortController();
+  const deadline = setTimeout(() => controller.abort(), 115_000);
+  setBusy(true); status.className = 'field-help'; status.textContent = 'Searching competitors, public customer feedback and market evidence… This can take 1–2 minutes.';
+  try {
+    const tracks = ['competitors','customers','market'];
+    const attempts = await Promise.allSettled(tracks.map(async track => {
+      if (!savedResearch.tracks[track]) savedResearch.tracks[track] = await request({action:'research',track,brief:input});
+    }));
+    const failed = attempts.find(x => x.status === 'rejected');
+    if (failed) throw failed.reason;
+    status.textContent = 'Comparing evidence, checking possible gaps and preparing your tests…';
+    const report = await request({action:'report',brief:input,tokens:tracks.map(t=>savedResearch.tracks[t].token)});
+    render(report);
+  } catch (error) {
+    status.className = 'error';
+    status.textContent = error.name === 'AbortError' ? 'Research timed out. Your answers are kept; please retry.' : error.message;
+  } finally { clearTimeout(deadline); setBusy(false); }
+}
+nextButton.addEventListener('click', () => { if (busy || !valid()) return; step < 6 ? updateStep(step + 1) : runResearch(); });
+backButton.addEventListener('click', () => { if (!busy) updateStep(Math.max(1,step-1)); });
+form.addEventListener('submit', event => event.preventDefault());
+form.addEventListener('keydown', event => { if (event.key === 'Enter' && event.target.tagName !== 'TEXTAREA') {event.preventDefault(); nextButton.click();} });
+fields.forEach(name => {
+  const input = $('#' + name);
+  input.addEventListener('input', () => {$('#'+name+'-count').textContent = `${input.value.length} / ${input.maxLength}`; $('#'+name+'-error').textContent = '';});
 });
-
-document.querySelectorAll('input[type="radio"]').forEach(input => {
-  input.addEventListener("change", () => {
-    document.querySelector(`#${input.name}-error`).textContent = "";
-    window.setTimeout(() => {
-      if (currentStep < 6) updateStep(currentStep + 1);
-    }, 260);
-  });
+restartButton.addEventListener('click', () => {
+  results.classList.add('hidden'); form.classList.remove('hidden'); restartButton.classList.add('hidden'); status.textContent = ''; updateStep(1);
 });
-
-restartButton.addEventListener("click", () => {
-  form.reset();
-  document.querySelector("#idea-count").textContent = "0 / 220";
-  document.querySelector("#audience-count").textContent = "0 / 90";
-  results.classList.add("hidden");
-  form.classList.remove("hidden");
-  restartButton.classList.add("hidden");
-  updateStep(1);
-});
-
-document.querySelectorAll("[data-start]").forEach(button => button.addEventListener("click", () => {
-  document.querySelector("#validator").scrollIntoView({ behavior: "smooth", block: "start" });
-  window.setTimeout(() => document.querySelector("#idea").focus({ preventScroll: true }), 600);
+document.querySelectorAll('[data-start]').forEach(button => button.addEventListener('click', () => {
+  if (!busy && !results.classList.contains('hidden')) restartButton.click();
+  $('#validator').scrollIntoView({behavior:'smooth',block:'start'});
+  if (!busy) $('#'+fields[step-1]).focus({preventScroll:true});
 }));
-
-document.querySelector("#upgrade-button").addEventListener("click", () => checkoutDialog.showModal());
-document.querySelector("#dialog-close").addEventListener("click", () => checkoutDialog.close());
-document.querySelector("#dialog-done").addEventListener("click", () => checkoutDialog.close());
-checkoutDialog.addEventListener("click", event => {
-  if (event.target === checkoutDialog) checkoutDialog.close();
+$('#upgrade-button').addEventListener('click', () => {
+  if (!lastReport) return;
+  const text = ['IDEAPROOF — MARKET EVIDENCE', lastReport.generatedAt, 'Analyst judgment: '+lastReport.verdict, lastReport.summary];
+  for (const key of ['competitors','customers','market','gaps','risks']) {
+    text.push('\n'+key.toUpperCase());
+    lastReport[key].forEach(i=>text.push(`${i.title} [${i.kind}; ${i.date}]\n${i.detail}\nLimit: ${i.limitation}\nSources: ${i.sourceIds.join(', ')}`));
+  }
+  text.push('\nSEVEN-DAY TESTS'); lastReport.tests.forEach(t=>text.push(`${t.title}\n${t.action}\nMeasure: ${t.measure}\nProposed pass: ${t.pass}\nProposed fail: ${t.fail}`));
+  text.push('\nUNKNOWNS',...lastReport.unknowns,'\nSOURCES'); lastReport.sources.forEach(s=>text.push(`${s.id}: ${s.title}\n${s.url}`));
+  const url = URL.createObjectURL(new Blob([text.join('\n\n')],{type:'text/plain;charset=utf-8'}));
+  const link = element('a'); link.href=url; link.download='ideaproof-research.txt'; link.click(); setTimeout(()=>URL.revokeObjectURL(url),1000);
 });
-
 updateStep(1);

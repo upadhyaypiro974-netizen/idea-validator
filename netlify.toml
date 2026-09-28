@@ -1,2 +1,10 @@
 [build]
-  publish = "."
+  command = "node build.mjs"
+  publish = "public"
+  functions = "netlify/functions"
+[build.environment]
+  NODE_VERSION = "22"
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Cache-Control = "no-store"
