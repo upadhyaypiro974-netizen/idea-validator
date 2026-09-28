@@ -47,6 +47,14 @@ export async function callAI(body, key, fetcher = fetch) {
     body: JSON.stringify(payload), signal: AbortSignal.timeout(48_000)
   });
   if (!response.ok) {
+    let providerError;
+    try { providerError = (await response.json()).error; } catch {}
+    const message = String(providerError?.message || '').toLowerCase();
+    const reasons = (providerError?.details || []).map(d => d.reason);
+    if (reasons.includes('API_KEY_INVALID') || /api key not valid|api key expired|api key.*leaked/.test(message)) throw new PublicError('Gemini rejected the API key. The site owner must replace GEMINI_API_KEY in Netlify and redeploy.', 503);
+    if (response.status === 401 || response.status === 403) throw new PublicError('Gemini access is denied. Check the API key restrictions and enable the Generative Language API for its Google project.', 503);
+    if (response.status === 404) throw new PublicError('The configured Gemini model is unavailable. The site owner must update GEMINI_MODEL to a supported model.', 503);
+    if (response.status === 400) throw new PublicError('Gemini rejected the research configuration (400). Check model compatibility and Google project eligibility.', 502);
     if (response.status === 429) throw new PublicError('Research capacity is temporarily unavailable. Please try again later.', 429);
     throw new PublicError('The research service is unavailable. No result or score has been generated.', 502);
   }

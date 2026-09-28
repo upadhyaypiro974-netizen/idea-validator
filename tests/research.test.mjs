@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validateBrief, safeUrl, signEvidence, verifyEvidence, research, checkReport, synthesize } from '../server/research.mjs';
+import { validateBrief, safeUrl, signEvidence, verifyEvidence, callAI, research, checkReport, synthesize } from '../server/research.mjs';
 import handler from '../netlify/functions/validate.mjs';
 const brief = validateBrief({ idea:'A bilingual missed-call assistant for small dental clinics.', audience:'Small dental clinic owners', geography:'Lucknow, India', alternatives:'Receptionist and WhatsApp', difference:'Hindi and English, ₹3,000/month', evidence:'No customer evidence yet' });
 const key = 'test-only-key';
@@ -35,4 +35,11 @@ test('full endpoint flow research packets -> report; rejects tampering',async()=
   assert.equal((await request({action:'report',tokens:[tokens[0],tokens[0],tokens[0]]})).status,400);
   assert.equal((await request({action:'report',tokens:[tokens[0]+'tamper',tokens[1],tokens[2]]})).status,400);
  }finally{globalThis.fetch=oldFetch;if(oldKey)process.env.GEMINI_API_KEY=oldKey;else delete process.env.GEMINI_API_KEY;}
+});
+
+test('provider failures expose useful categories without leaking payloads', async () => {
+ const body = {model:'gemini-2.5-flash',instructions:'Research',input:'Test',max_output_tokens:10};
+ for (const [status,error,pattern] of [[400,{message:'API key not valid. secret-value'},/rejected the API key/],[403,{message:'secret-value'},/access is denied/],[404,{},/model is unavailable/],[429,{},/capacity/],[400,{},/configuration/]]) {
+  await assert.rejects(callAI(body,key,async()=>Response.json({error},{status})), e => pattern.test(e.message) && !e.message.includes('secret-value'));
+ }
 });
