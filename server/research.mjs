@@ -46,7 +46,15 @@ export async function callAI(body, key, fetcher = fetch) {
     method: 'POST', headers: { 'x-goog-api-key': key, 'Content-Type': 'application/json' },
     body: JSON.stringify(payload), signal: AbortSignal.timeout(48_000)
   });
-  if (response.status === 404 && body.model === 'gemini-2.5-flash') return callAI({ ...body, model: 'gemini-2.5-flash-lite' }, key, fetcher);
+  if (response.status === 404 && !body.modelResolved) {
+    const catalogResponse = await fetcher('https://generativelanguage.googleapis.com/v1beta/models', { headers: { 'x-goog-api-key': key }, signal: AbortSignal.timeout(8_000) });
+    if (catalogResponse.ok) {
+      const catalog = await catalogResponse.json();
+      const available = (catalog.models || []).filter(m => m.supportedGenerationMethods?.includes('generateContent')).map(m => m.name.replace(/^models\//, ''));
+      const selected = ['gemini-2.5-flash','gemini-2.5-flash-lite','gemini-3.1-flash-lite','gemini-3.5-flash-lite'].find(m => m !== body.model && available.includes(m));
+      if (selected) return callAI({ ...body, model: selected, modelResolved: true }, key, fetcher);
+    }
+  }
   if (!response.ok) {
     let providerError;
     try { providerError = (await response.json()).error; } catch {}
