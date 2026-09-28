@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Turn a startup idea into an evidence-based validation plan in five minutes."
+    />
+    <meta name="theme-color" content="#f5f3ee" />
+    <title>IdeaProof — Is your idea worth building?</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="grain" aria-hidden="true"></div>
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="IdeaProof home">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" role="img"><path d="M5 12.5 10 17l9-10" /></svg>
+        </span>
+        IdeaProof
+      </a>
+      <button class="nav-cta" data-start>Validate my idea <span aria-hidden="true">↗</span></button>
+    </header>
+
+    <main id="top">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <div class="eyebrow"><span></span> A reality check before you build</div>
+          <h1 id="hero-title">Is your idea worth <em>building?</em></h1>
+          <p class="hero-lede">
+            Answer six focused questions. Get an honest score, the biggest risk to test,
+            and a practical 7-day validation plan—made around your idea.
+          </p>
+          <div class="hero-actions">
+            <button class="primary-button" data-start>Check my idea <span aria-hidden="true">→</span></button>
+            <div class="trust-note">
+              <span class="avatar-stack" aria-hidden="true"><i>P</i><i>A</i><i>M</i></span>
+              <span><strong>5 minutes</strong><br />No startup jargon</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-visual" aria-label="Example startup scorecard">
+          <div class="orbit orbit-one" aria-hidden="true"></div>
+          <div class="orbit orbit-two" aria-hidden="true"></div>
+          <div class="score-card tilt-card">
+            <div class="card-kicker"><span class="live-dot"></span> SAMPLE REPORT</div>
+            <div class="score-row">
+              <div class="score-ring mini" style="--score: 76">
+                <span>76<small>/100</small></span>
+              </div>
+              <div><b>Promising</b><p>Validate demand before building.</p></div>
+            </div>
+            <div class="signal-list">
+              <div><span>Problem clarity</span><strong class="good">Strong</strong></div>
+              <div><span>Demand evidence</span><strong class="warn">Needs proof</strong></div>
+              <div><span>Reachability</span><strong class="good">Strong</strong></div>
+            </div>
+          </div>
+          <div class="floating-tag tag-one">No generic advice</div>
+          <div class="floating-tag tag-two">Your next test →</div>
+        </div>
+      </section>
+
+      <section class="validator-section" id="validator" aria-labelledby="validator-title">
+        <div class="section-heading">
+          <div>
+            <div class="eyebrow"><span></span> Your idea, under the lens</div>
+            <h2 id="validator-title">Find the weak link <em>early.</em></h2>
+          </div>
+          <p>One question at a time. Your answers shape the score and next steps.</p>
+        </div>
+
+        <div class="validator-shell" id="quiz-shell">
+          <aside class="quiz-aside">
+            <div>
+              <p class="aside-label">VALIDATION CHECK</p>
+              <h3 id="aside-title">Let’s understand the idea.</h3>
+              <p id="aside-copy">Start with the simplest version—what are you making and for whom?</p>
+            </div>
+            <div class="steps" aria-label="Question progress">
+              <span class="active"></span><span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <p class="privacy-note"><span aria-hidden="true">⌁</span> Your answers stay in this browser.</p>
+          </aside>
+
+          <div class="quiz-panel">
+            <div class="quiz-topline">
+              <span id="step-label">QUESTION 1 OF 6</span>
+              <button class="text-button hidden" id="restart-button" type="button">Start over</button>
+            </div>
+
+            <form id="quiz-form" novalidate>
+              <div class="question active" data-step="1">
+                <label for="idea">Describe your startup idea in one sentence.</label>
+                <p class="field-help">Simple is better. You can polish it later.</p>
+                <textarea id="idea" name="idea" maxlength="220" rows="4" placeholder="Example: A tool that turns customer interviews into clear product decisions." required></textarea>
+                <div class="input-meta"><span id="idea-error" class="error" role="alert"></span><span id="idea-count">0 / 220</span></div>
+              </div>
+
+              <div class="question" data-step="2">
+                <label for="audience">Who feels this problem most?</label>
+                <p class="field-help">Name a specific group, not “everyone.”</p>
+                <input id="audience" name="audience" maxlength="90" placeholder="Example: Solo SaaS founders with early users" required />
+                <div class="input-meta"><span id="audience-error" class="error" role="alert"></span><span id="audience-count">0 / 90</span></div>
+              </div>
+
+              <fieldset class="question" data-step="3">
+                <legend>How often does this problem happen?</legend>
+                <p class="field-help">Frequent problems usually create stronger urgency.</p>
+                <div class="option-grid">
+                  <label class="option"><input type="radio" name="frequency" value="daily" /><span><b>Daily</b><small>It interrupts work or life often</small></span><i>+25</i></label>
+                  <label class="option"><input type="radio" name="frequency" value="weekly" /><span><b>Weekly</b><small>It comes up regularly</small></span><i>+19</i></label>
+                  <label class="option"><input type="radio" name="frequency" value="monthly" /><span><b>Monthly</b><small>It matters, but not often</small></span><i>+11</i></label>
+                  <label class="option"><input type="radio" name="frequency" value="rarely" /><span><b>Rarely</b><small>Only in special situations</small></span><i>+4</i></label>
+                </div>
+                <span class="error choice-error" id="frequency-error" role="alert"></span>
+              </fieldset>
+
+              <fieldset class="question" data-step="4">
+                <legend>What proof do you have that people want it?</legend>
+                <p class="field-help">Choose the strongest signal you already have.</p>
+                <div class="option-grid">
+                  <label class="option"><input type="radio" name="evidence" value="paid" /><span><b>Paid or pre-ordered</b><small>Someone has committed money</small></span><i>+25</i></label>
+                  <label class="option"><input type="radio" name="evidence" value="interviews" /><span><b>User interviews</b><small>5+ people described this pain</small></span><i>+19</i></label>
+                  <label class="option"><input type="radio" name="evidence" value="interest" /><span><b>Early interest</b><small>Clicks, signups, or positive replies</small></span><i>+12</i></label>
+                  <label class="option"><input type="radio" name="evidence" value="assumption" /><span><b>It’s an assumption</b><small>I have not tested it yet</small></span><i>+3</i></label>
+                </div>
+                <span class="error choice-error" id="evidence-error" role="alert"></span>
+              </fieldset>
+
+              <fieldset class="question" data-step="5">
+                <legend>How do people solve this problem today?</legend>
+                <p class="field-help">Competition is useful—it proves people care.</p>
+                <div class="option-grid">
+                  <label class="option"><input type="radio" name="alternative" value="painful" /><span><b>Painful workaround</b><small>Spreadsheets, manual work, or many tools</small></span><i>+15</i></label>
+                  <label class="option"><input type="radio" name="alternative" value="expensive" /><span><b>Expensive solution</b><small>Options exist but feel overpriced</small></span><i>+13</i></label>
+                  <label class="option"><input type="radio" name="alternative" value="satisfied" /><span><b>Good existing tools</b><small>Users are mostly satisfied already</small></span><i>+6</i></label>
+                  <label class="option"><input type="radio" name="alternative" value="unknown" /><span><b>I’m not sure</b><small>I need to research alternatives</small></span><i>+4</i></label>
+                </div>
+                <span class="error choice-error" id="alternative-error" role="alert"></span>
+              </fieldset>
+
+              <fieldset class="question" data-step="6">
+                <legend>Can you reach your first 20 potential users?</legend>
+                <p class="field-help">A reachable audience is more valuable than a huge one.</p>
+                <div class="option-grid">
+                  <label class="option"><input type="radio" name="reach" value="direct" /><span><b>Yes, directly</b><small>I know where they are and can contact them</small></span><i>+20</i></label>
+                  <label class="option"><input type="radio" name="reach" value="channel" /><span><b>I know the channel</b><small>A community, platform, or partner</small></span><i>+15</i></label>
+                  <label class="option"><input type="radio" name="reach" value="ideas" /><span><b>I have a few ideas</b><small>But no reliable route yet</small></span><i>+9</i></label>
+                  <label class="option"><input type="radio" name="reach" value="unsure" /><span><b>Not yet</b><small>I don’t know where to find them</small></span><i>+3</i></label>
+                </div>
+                <span class="error choice-error" id="reach-error" role="alert"></span>
+              </fieldset>
+
+              <div class="quiz-actions">
+                <button type="button" class="back-button hidden" id="back-button"><span aria-hidden="true">←</span> Back</button>
+                <button type="button" class="next-button" id="next-button">Continue <span aria-hidden="true">→</span></button>
+              </div>
+            </form>
+
+            <section class="results hidden" id="results" aria-live="polite" aria-labelledby="result-title">
+              <div class="result-header">
+                <div class="score-ring" id="score-ring" style="--score: 0">
+                  <span><b id="score-value">0</b><small>/100</small></span>
+                </div>
+                <div>
+                  <p class="result-kicker" id="result-kicker">YOUR VERDICT</p>
+                  <h3 id="result-title">Worth testing</h3>
+                  <p id="result-summary"></p>
+                </div>
+              </div>
+
+              <div class="idea-recap"><span>YOUR IDEA</span><p id="idea-recap"></p></div>
+
+              <div class="result-grid">
+                <article class="result-card strength-card">
+                  <div class="card-icon">✓</div><div><span>STRONGEST SIGNAL</span><h4 id="strength-title"></h4><p id="strength-copy"></p></div>
+                </article>
+                <article class="result-card risk-card">
+                  <div class="card-icon">!</div><div><span>BIGGEST RISK</span><h4 id="risk-title"></h4><p id="risk-copy"></p></div>
+                </article>
+              </div>
+
+              <article class="next-test">
+                <div class="test-number">01</div>
+                <div><span>YOUR NEXT BEST TEST</span><h4 id="test-title"></h4><p id="test-copy"></p></div>
+                <div class="time-pill">This week</div>
+              </article>
+
+              <div class="upgrade-card">
+                <div>
+                  <span class="upgrade-label">GO FROM IDEA → EVIDENCE</span>
+                  <h3>Build your complete validation plan.</h3>
+                  <p>Get unlimited idea checks, interview scripts, competitor prompts, and a personalized 7-day action plan for 3 months.</p>
+                </div>
+                <div class="price-block"><div><strong>$5</strong><span>one-time<br />3 months</span></div><button type="button" class="upgrade-button" id="upgrade-button">Start for $5 <span>→</span></button><small>No subscription</small></div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </section>
+
+      <section class="closing-section">
+        <p>DON’T BUILD ON A GUESS</p>
+        <h2>A small test today can save<br /><em>months of building.</em></h2>
+        <button class="primary-button light" data-start>Validate another idea <span aria-hidden="true">→</span></button>
+      </section>
+    </main>
+
+    <footer>
+      <a class="brand footer-brand" href="#top"><span class="brand-mark"><svg viewBox="0 0 24 24"><path d="M5 12.5 10 17l9-10" /></svg></span>IdeaProof</a>
+      <p>Clarity before code.</p>
+      <p>© 2026 IdeaProof</p>
+    </footer>
+
+    <dialog id="checkout-dialog">
+      <button class="dialog-close" id="dialog-close" aria-label="Close">×</button>
+      <div class="dialog-icon">↗</div>
+      <p class="result-kicker">FOUNDER ACCESS</p>
+      <h2>Continue with the $5 plan</h2>
+      <p>Connect your secure payment link here to start accepting customers. This preview does not collect payment.</p>
+      <button class="primary-button dialog-button" id="dialog-done">Got it</button>
+    </dialog>
+
+    <script src="app.js"></script>
+  </body>
+</html>
