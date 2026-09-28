@@ -58,3 +58,5 @@ Technical references:
 - https://ai.google.dev/gemini-api/docs/structured-output
 - https://docs.netlify.com/build/functions/configuration/
 - https://docs.netlify.com/manage/security/secure-access-to-sites/rate-limiting/
+
+Model availability: if Gemini 2.5 Flash returns 404, research retries once with Gemini 2.5 Flash-Lite, which also has a documented free Search grounding tier. If both are unavailable to the Google project, the app reports the configuration issue; it does not silently switch to a paid-only search model.

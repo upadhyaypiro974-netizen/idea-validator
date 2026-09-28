@@ -46,6 +46,7 @@ export async function callAI(body, key, fetcher = fetch) {
     method: 'POST', headers: { 'x-goog-api-key': key, 'Content-Type': 'application/json' },
     body: JSON.stringify(payload), signal: AbortSignal.timeout(48_000)
   });
+  if (response.status === 404 && body.model === 'gemini-2.5-flash') return callAI({ ...body, model: 'gemini-2.5-flash-lite' }, key, fetcher);
   if (!response.ok) {
     let providerError;
     try { providerError = (await response.json()).error; } catch {}
