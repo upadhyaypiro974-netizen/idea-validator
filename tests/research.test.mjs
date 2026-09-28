@@ -43,3 +43,9 @@ test('provider failures expose useful categories without leaking payloads', asyn
   await assert.rejects(callAI(body,key,async()=>Response.json({error},{status})), e => pattern.test(e.message) && !e.message.includes('secret-value'));
  }
 });
+
+test('current model uses Gemini 3 thinking configuration', async () => {
+ let payload;
+ await callAI({model:'gemini-3.1-flash-lite',instructions:'test',input:'test',max_output_tokens:20},key,async (_url,req)=>{payload=JSON.parse(req.body);return providerResponse({output:[]});});
+ assert.deepEqual(payload.generationConfig.thinkingConfig,{thinkingLevel:'low'});
+});

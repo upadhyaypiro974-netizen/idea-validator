@@ -38,7 +38,7 @@ export function safeUrl(value) {
   } catch { return null; }
 }
 export async function callAI(body, key, fetcher = fetch) {
-  const generationConfig = { maxOutputTokens: body.max_output_tokens, thinkingConfig: { thinkingBudget: 0 } };
+  const generationConfig = { maxOutputTokens: body.max_output_tokens, thinkingConfig: body.model.startsWith('gemini-2.5-') ? { thinkingBudget: 0 } : { thinkingLevel: 'low' } };
   if (body.text) Object.assign(generationConfig, { responseMimeType: 'application/json', responseJsonSchema: body.text.format.schema });
   const payload = { systemInstruction: { parts: [{ text: body.instructions }] }, contents: [{ role: 'user', parts: [{ text: body.input }] }], generationConfig };
   if (body.tools) payload.tools = [{ google_search: {} }];
@@ -53,6 +53,7 @@ export async function callAI(body, key, fetcher = fetch) {
     const message = String(providerError?.message || '').toLowerCase();
     const reasons = (providerError?.details || []).map(d => d.reason);
     if (reasons.includes('API_KEY_INVALID') || /api key not valid|api key expired|api key.*leaked/.test(message)) throw new PublicError('Gemini rejected the API key. The site owner must replace GEMINI_API_KEY in Netlify and redeploy.', 503);
+    if (/billing|paid tier|free tier|not available in your country/.test(message)) throw new PublicError('Google Search research is not available on this Google project tier. The site owner needs an eligible search API plan or a separate search provider.', 503);
     if (response.status === 401 || response.status === 403) throw new PublicError('Gemini access is denied. Check the API key restrictions and enable the Generative Language API for its Google project.', 503);
     if (response.status === 404) throw new PublicError('The configured Gemini model is unavailable. The site owner must update GEMINI_MODEL to a supported model.', 503);
     if (response.status === 400) throw new PublicError('Gemini rejected the research configuration (400). Check model compatibility and Google project eligibility.', 502);

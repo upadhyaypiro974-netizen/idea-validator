@@ -7,7 +7,7 @@ Source-linked market research with no numeric viability score or success predict
 - Production branch: `main`. Base directory: blank.
 - `netlify.toml` sets build command `node build.mjs`, publish directory `public`, and functions directory `netlify/functions`.
 - Add `GEMINI_API_KEY` as a Netlify secret with Functions scope. Use a Google AI Studio project with Gemini API and Google Search grounding access. Never put the key in GitHub, frontend code or chat.
-- Optional `GEMINI_MODEL`: defaults to `gemini-2.5-flash`; requires web search and structured outputs.
+- Optional `GEMINI_MODEL`: defaults to `gemini-3.1-flash-lite`; requires web search and structured outputs.
 - Redeploy after configuring secrets. Run a real idea check and check citations before wider use.
 
 No API key was available during implementation, so live provider behaviour and Netlify deployment have not been verified. Without a key the server returns an honest unavailable message, never invented research.
@@ -59,4 +59,4 @@ Technical references:
 - https://docs.netlify.com/build/functions/configuration/
 - https://docs.netlify.com/manage/security/secure-access-to-sites/rate-limiting/
 
-Model availability: if Gemini 2.5 Flash returns 404, research retries once with Gemini 2.5 Flash-Lite, which also has a documented free Search grounding tier. If both are unavailable to the Google project, the app reports the configuration issue; it does not silently switch to a paid-only search model.
+Gemini 3.1 Flash-Lite supports search and structured reports, but Google Search grounding is not available on its API free tier. An eligible Google project plan is required for this integrated search approach. No billing settings are changed by this code.

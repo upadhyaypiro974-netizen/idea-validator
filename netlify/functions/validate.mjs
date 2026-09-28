@@ -14,7 +14,7 @@ export default async function handler(request) {
     let data;
     try { data = JSON.parse(raw); } catch { throw new PublicError('Invalid JSON.'); }
     const brief = validateBrief(data.brief);
-    const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+    const model = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
     if (data.action === 'research') {
       const evidence = await research(data.track, brief, key, model);
       return json({ token: signEvidence(evidence, brief, key), track: evidence.track, sourceCount: evidence.sources.length });
