@@ -1,57 +1,47 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validateBrief, safeUrl, signEvidence, verifyEvidence, diagnoseProvider, callAI, research, checkReport, synthesize } from '../server/research.mjs';
+import { validateBrief, safeUrl, signEvidence, verifyEvidence, planResearch, callAI, research, checkReport, synthesize } from '../server/research.mjs';
 import handler from '../netlify/functions/validate.mjs';
 const brief = validateBrief({ idea:'A bilingual missed-call assistant for small dental clinics.', audience:'Small dental clinic owners', geography:'Lucknow, India', alternatives:'Receptionist and WhatsApp', difference:'Hindi and English, ₹3,000/month', evidence:'No customer evidence yet' });
 const key = 'test-only-key';
-const providerResponse = legacy => {
- const parts = (legacy.output || []).filter(x => x.type === 'message').flatMap(x => x.content);
- const searched = (legacy.output || []).some(x => x.type === 'web_search_call');
- return Response.json({ candidates: [{ finishReason: 'STOP', content: { parts: parts.map(p => ({text:p.text})) }, ...(searched ? {groundingMetadata: { webSearchQueries:['competitor pricing'], groundingChunks:parts.flatMap(p => p.annotations || []).map(a => ({web:{uri:a.url,title:a.title}})), searchEntryPoint:{renderedContent:'<div>Google Search</div>'} }} : {}) }] });
-};
+const providerResponse = value => Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify(value)}}]});
 const source = { id:'S1',title:'Example pricing',url:'https://example.com/pricing' };
 const finding = { title:'Product offering',detail:'Example sourced detail',kind:'Evidence',sourceIds:['S1'],date:'Date unknown',limitation:'Vendor claim, not proof of demand' };
 const report = () => ({verdict:'Worth testing',summary:'Test the hypothesis',competitors:[{...finding}],customers:[],market:[],gaps:[],risks:[],tests:[{title:'Interview buyers',action:'Ask 5 owners about their last missed call.',measure:'Count owners with a current workaround',pass:'Proposed: 3 describe repeated pain',fail:'Proposed: fewer than 3'}],unknowns:['Willingness to pay']});
 test('validates context and bounds',()=>{assert.throws(()=>validateBrief({...brief,idea:'x'})); assert.throws(()=>validateBrief({...brief,evidence:'x'.repeat(1201)}));});
 test('rejects unsafe source URLs',()=>{for(const url of ['javascript:alert(1)','http://localhost','http://127.0.0.1','https://u:p@example.com']) assert.equal(safeUrl(url),null); assert.equal(safeUrl(source.url),source.url);});
 test('evidence is bound to idea, expiry and signature',()=>{const token=signEvidence({track:'market',sources:[source]},brief,key);assert.equal(verifyEvidence(token,brief,key).track,'market');assert.throws(()=>verifyEvidence(token,{...brief,geography:'USA'},key));assert.throws(()=>verifyEvidence(token+'x',brief,key));const now=Date.now;Date.now=()=>now()+31*60_000;try{assert.throws(()=>verifyEvidence(token,brief,key));}finally{Date.now=now;}});
-test('research forces search and extracts only provider citations',async()=>{let body;const data=await research('competitors',brief,key,'gemini-2.5-flash',async(_,req)=>{body=JSON.parse(req.body);return providerResponse({status:'completed',output:[{type:'web_search_call',status:'completed'},{type:'message',content:[{type:'output_text',text:'Observed offering',annotations:[{type:'url_citation',url:source.url,title:source.title},{type:'url_citation',url:'javascript:alert(1)',title:'bad'}]}]}]});});assert.deepEqual(body.tools,[{google_search:{}}]);assert.equal(body.generationConfig.thinkingConfig.thinkingBudget,0);assert.equal(data.sources.length,1);});
-test('refuses memory-only research',async()=>{await assert.rejects(research('market',brief,key,'gemini-2.5-flash',async()=>providerResponse({status:'completed',output:[]})),/Live search/);});
 test('rejects unsupported source IDs and unsourced factual findings',()=>{const r=report();r.competitors[0].sourceIds=['S9'];assert.throws(()=>checkReport(r,[source]),/traced/);r.competitors[0].sourceIds=[];assert.throws(()=>checkReport(r,[source]),/traced/);});
 test('low evidence cannot receive a strong verdict',()=>assert.equal(checkReport(report(),[source]).verdict,'Evidence is limited'));
-test('synthesis accepts a structurally valid sourced report',async()=>{const r=await synthesize(brief,[{track:'competitors',text:'Evidence',sources:[source]}],key,'gemini-2.5-flash',async()=>providerResponse({status:'completed',output:[{type:'message',content:[{type:'output_text',text:JSON.stringify(report())}]}]}));assert.equal(r.sources[0].url,source.url);assert.ok(r.generatedAt);});
-test('missing key, method and origin fail closed without generating scores',async()=>{const old=process.env.GEMINI_API_KEY;delete process.env.GEMINI_API_KEY;try{const res=await handler(new Request('https://example.com/api/validate',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}));assert.equal(res.status,503);assert.equal((await res.json()).code,'NOT_CONFIGURED');assert.equal((await handler(new Request('https://example.com/api/validate'))).status,405);assert.equal((await handler(new Request('https://example.com/api/validate',{method:'POST',headers:{Origin:'https://evil.example'}}))).status,403);}finally{if(old)process.env.GEMINI_API_KEY=old;}});
-test('full endpoint flow research packets -> report; rejects tampering',async()=>{
- const oldKey=process.env.GEMINI_API_KEY,oldFetch=globalThis.fetch; process.env.GEMINI_API_KEY=key;
- globalThis.fetch=async(_url,options)=>{
-  const body=JSON.parse(options.body);
-  return providerResponse(body.tools ? {status:'completed',output:[{type:'web_search_call',status:'completed'},{type:'message',content:[{type:'output_text',text:'Example observation',annotations:[{type:'url_citation',url:source.url,title:source.title}]}]}]} : {status:'completed',output:[{type:'message',content:[{type:'output_text',text:JSON.stringify(report())}]}]});
+test('full endpoint plans, searches, synthesizes and rejects forged packets',async()=>{
+ const oldFetch=globalThis.fetch, oldGroq=process.env.GROQ_API_KEY, oldTavily=process.env.TAVILY_API_KEY;
+ process.env.GROQ_API_KEY=key;process.env.TAVILY_API_KEY='search-test-key';
+ const queries={competitors:'dental clinic assistant pricing India',customers:'dental clinic assistant customer reviews',market:'India dental clinics missed calls demand'};
+ const calls=[];
+ globalThis.fetch=async(url,options)=>{
+  const body=JSON.parse(options.body);calls.push({url,body});
+  if(url.includes('tavily')) {assert.equal(options.headers.Authorization,'Bearer search-test-key');assert.equal(body.search_depth,'advanced');return Response.json({results:[{...source,content:'Vendor describes bilingual reminders.'},{url:'javascript:alert(1)',content:'bad'}]});}
+  assert.equal(options.headers.Authorization,`Bearer ${key}`);assert.equal(body.response_format.json_schema.strict,true);
+  return providerResponse(body.max_completion_tokens===650?queries:report());
  };
- const request=data=>handler(new Request('https://example.com/api/validate',{method:'POST',headers:{'Content-Type':'application/json',Origin:'https://example.com'},body:JSON.stringify({...data,brief})}));
- try {
+ const request=data=>handler(new Request('https://example.com/api/validate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...data,brief})}));
+ try{
+  const plan=await request({action:'plan'});assert.equal(plan.status,200);const planToken=(await plan.json()).token;
   const tokens=[];
-  for(const track of ['competitors','customers','market']){const res=await request({action:'research',track});assert.equal(res.status,200);tokens.push((await res.json()).token);}
-  const res=await request({action:'report',tokens});assert.equal(res.status,200);assert.equal((await res.json()).sources[0].id,'S1');
+  for(const track of ['competitors','customers','market']){const res=await request({action:'research',track,planToken});assert.equal(res.status,200);const data=await res.json();assert.equal(data.sourceCount,1);tokens.push(data.token);}
+  const res=await request({action:'report',tokens});assert.equal(res.status,200);assert.equal((await res.json()).sources[0].url,source.url);
+  assert.equal(calls.length,5);
+  assert.equal((await request({action:'research',track:'market',planToken:planToken+'bad'})).status,400);
   assert.equal((await request({action:'report',tokens:[tokens[0],tokens[0],tokens[0]]})).status,400);
-  assert.equal((await request({action:'report',tokens:[tokens[0]+'tamper',tokens[1],tokens[2]]})).status,400);
- }finally{globalThis.fetch=oldFetch;if(oldKey)process.env.GEMINI_API_KEY=oldKey;else delete process.env.GEMINI_API_KEY;}
+  assert.equal((await request({action:'report',tokens:[planToken,tokens[1],tokens[2]]})).status,400);
+  delete process.env.TAVILY_API_KEY;assert.equal((await request({action:'plan'})).status,503);
+  assert.equal((await handler(new Request('https://example.com/api/validate'))).status,405);
+ }finally{globalThis.fetch=oldFetch;for(const [name,value] of [['GROQ_API_KEY',oldGroq],['TAVILY_API_KEY',oldTavily]]){if(value===undefined)delete process.env[name];else process.env[name]=value;}}
 });
-
-test('provider failures expose useful categories without leaking payloads', async () => {
- const body = {model:'gemini-2.5-flash',instructions:'Research',input:'Test',max_output_tokens:10};
- for (const [status,error,pattern] of [[400,{message:'API key not valid. secret-value'},/rejected the API key/],[403,{message:'secret-value'},/access is denied/],[404,{},/model is unavailable/],[429,{},/capacity/],[400,{},/configuration/]]) {
-  await assert.rejects(callAI(body,key,async()=>Response.json({error},{status})), e => pattern.test(e.message) && !e.message.includes('secret-value'));
- }
+test('provider failure never exposes raw secrets',async()=>{
+ for(const status of [401,403,429,432,500])await assert.rejects(research('market',brief,key,'test query',async()=>Response.json({error:'secret-value'},{status})),e=>!e.message.includes('secret-value')&&e.message.includes('TAVILY_'));
 });
-
-test('current model uses Gemini 3 thinking configuration', async () => {
- let payload;
- await callAI({model:'gemini-3.1-flash-lite',instructions:'test',input:'test',max_output_tokens:20},key,async (_url,req)=>{payload=JSON.parse(req.body);return providerResponse({output:[]});});
- assert.deepEqual(payload.generationConfig.thinkingConfig,{thinkingLevel:'low'});
-});
-
-test('diagnostics identify restrictions without exposing keys or user input', () => {
- const e={status:'PERMISSION_DENIED',message:'private input and secret-value',details:[{reason:'API_KEY_SERVICE_BLOCKED',metadata:{key:'secret-value'}}]};
- const d=diagnoseProvider(e,403);assert.equal(d.code,'GOOGLE_403_API_KEY_SERVICE_BLOCKED');assert.ok(!JSON.stringify(d).includes('secret-value'));assert.ok(!JSON.stringify(d).includes('private input'));
- assert.equal(diagnoseProvider({message:'Your project has been denied access'},403).code,'GOOGLE_403_PROJECT_ACCESS_DENIED');
+test('empty searches remain empty instead of inventing evidence',async()=>{
+ const e=await research('market',brief,key,'test query',async()=>Response.json({results:[]}));assert.equal(e.sources.length,0);
+ await assert.rejects(synthesize(brief,[e],key,'openai/gpt-oss-20b'),/No traceable/);
 });

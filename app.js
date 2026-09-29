@@ -91,16 +91,6 @@ function render(report) {
   $('#test-title').textContent = report.tests[0].title;
   $('#test-copy').textContent = report.tests[0].action;
   const details = $('#research-details'); details.replaceChildren();
-  for (const html of report.searchSuggestions || []) {
-    const frame = document.createElement('iframe');
-    frame.title = 'Google Search suggestions';
-    frame.setAttribute('sandbox', 'allow-popups allow-popups-to-escape-sandbox');
-    frame.setAttribute('referrerpolicy', 'no-referrer');
-    frame.style.cssText = 'width:100%;height:160px;border:0;margin:12px 0';
-    frame.srcdoc = `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src https: data:">${html}`;
-    details.append(frame);
-  }
-
   details.append(element('p', `Research run: ${new Date(report.generatedAt).toLocaleString()}. Links show retrieved sources; publication dates may be older. Findings are AI interpretations and should be checked.`, 'field-help'));
   for (const [key, label] of [['competitors','Competitors & alternatives'],['customers','Customer evidence'],['market','Market signals'],['gaps','Possible gaps to test'],['risks','Risks & contrary evidence']]) {
     const section = element('section'); section.append(element('h3', label));
@@ -132,9 +122,10 @@ async function runResearch() {
   const deadline = setTimeout(() => controller.abort(), 115_000);
   setBusy(true); status.className = 'field-help'; status.textContent = 'Searching competitors, public customer feedback and market evidence… This can take 1–2 minutes.';
   try {
+    if (!savedResearch.plan) savedResearch.plan = await request({action:'plan',brief:input});
     const tracks = ['competitors','customers','market'];
     const attempts = await Promise.allSettled(tracks.map(async track => {
-      if (!savedResearch.tracks[track]) savedResearch.tracks[track] = await request({action:'research',track,brief:input});
+      if (!savedResearch.tracks[track]) savedResearch.tracks[track] = await request({action:'research',track,brief:input,planToken:savedResearch.plan.token});
     }));
     const failed = attempts.find(x => x.status === 'rejected');
     if (failed) throw failed.reason;
