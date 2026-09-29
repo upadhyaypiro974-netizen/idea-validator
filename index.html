@@ -54,15 +54,15 @@
           <div class="score-card tilt-card">
             <div class="card-kicker"><span class="live-dot"></span> ILLUSTRATIVE REPORT</div>
             <div class="score-row">
-              <div class="score-ring mini" style="--score: 0">
-                <span>3<small> sources</small></span>
+              <div class="score-ring mini" style="--score: 66.667" aria-label="Illustrative evidence coverage: 2 of 3 research areas">
+                <span>2<small> / 3 areas</small></span>
               </div>
-              <div><b>Evidence first</b><p>Research, then test demand.</p></div>
+              <div><b>Evidence first</b><p>Evidence coverage · 3 sources.</p></div>
             </div>
             <div class="signal-list">
               <div><span>Competitors</span><strong class="good">Sources</strong></div>
               <div><span>Customer evidence</span><strong class="warn">Check context</strong></div>
-              <div><span>Market gaps</span><strong class="good">Sources</strong></div>
+              <div><span>Market signals</span><strong class="good">Sources</strong></div>
             </div>
           </div>
           <div class="floating-tag tag-one">No generic advice</div>
@@ -81,10 +81,20 @@
 
         <div class="validator-shell" id="quiz-shell">
           <aside class="quiz-aside">
-            <div>
+            <div id="question-aside">
               <p class="aside-label">VALIDATION CHECK</p>
               <h3 id="aside-title">Let’s understand the idea.</h3>
               <p id="aside-copy">Start with the simplest version—what are you making and for whom?</p>
+            </div>
+            <div id="verdict-aside" class="hidden">
+              <p class="aside-label">YOUR VALIDATION RESULT</p>
+              <span id="verdict-level" class="verdict-level"></span>
+              <h3 id="result-title"></h3>
+              <p id="result-summary" class="verdict-summary"></p>
+              <p class="verdict-note">Based on public evidence. Not a prediction of sales or success.</p>
+              <div class="aside-insight"><span>WATCH OUT FOR</span><h4 id="aside-risk"></h4><a href="#report-risks">View risks & sources ↗</a></div>
+              <div class="aside-insight"><span>YOUR NEXT MOVE</span><h4 id="aside-next"></h4><a href="#report-tests">See your test plan ↗</a></div>
+              <nav id="report-nav" aria-label="Report sections"></nav>
             </div>
             <div class="steps" aria-label="Question progress">
               <span class="active"></span><span></span><span></span><span></span><span></span><span></span>
@@ -145,33 +155,18 @@
 
             <section class="results hidden" id="results" aria-live="polite" aria-labelledby="result-title">
               <div class="result-header">
-                <div class="score-ring" id="score-ring" style="--score: 0">
-                  <span><b id="score-value">0</b><small> sources</small></span>
+                <div class="score-ring" id="score-ring" style="--score: 0" role="img">
+                  <span><b id="score-value">0</b><small> / 3 areas</small></span>
                 </div>
                 <div>
-                  <p class="result-kicker" id="result-kicker">YOUR VERDICT</p>
-                  <h3 id="result-title">Worth testing</h3>
-                  <p id="result-summary"></p>
+                  <p class="result-kicker" id="result-kicker">EVIDENCE COVERAGE</p>
+                  <h3>Inside your research</h3>
+                  <p id="coverage-copy"></p>
+                  <span class="source-total" id="source-total"></span>
                 </div>
               </div>
-
-              <div class="idea-recap"><span>YOUR IDEA</span><p id="idea-recap"></p></div>
-
-              <div class="result-grid">
-                <article class="result-card strength-card">
-                  <div class="card-icon">✓</div><div><span>POSSIBLE OPENING · INFERENCE</span><h4 id="strength-title"></h4><p id="strength-copy"></p></div>
-                </article>
-                <article class="result-card risk-card">
-                  <div class="card-icon">!</div><div><span>BIGGEST RISK</span><h4 id="risk-title"></h4><p id="risk-copy"></p></div>
-                </article>
-              </div>
-
-              <article class="next-test">
-                <div class="test-number">01</div>
-                <div><span>YOUR NEXT BEST TEST</span><h4 id="test-title"></h4><p id="test-copy"></p></div>
-                <div class="time-pill">This week</div>
-              </article>
-
+              <div class="idea-recap brief-recap"><span>THE IDEA YOU TESTED</span><p id="idea-recap"></p></div>
+              <div class="evidence-legend" aria-label="Finding labels"><span class="finding-badge evidence">Evidence</span> Sourced observation <span class="finding-badge inference">Inference</span> Interpretation <span class="finding-badge unknown">Unknown</span> Needs research</div>
               <div id="research-details"></div>
               <div class="upgrade-card">
                 <div>

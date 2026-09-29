@@ -58,61 +58,75 @@ function element(tag, text, cls) {
   if (cls) el.className = cls;
   return el;
 }
+const reportSections = [
+  ['competitors','Competitors & alternatives','01','Who already solves this problem?'],
+  ['customers','Customer evidence','02','What people actually say and do.'],
+  ['market','Market signals','03','Demand, timing and adoption barriers.'],
+  ['gaps','Possible gaps to test','04','Hypotheses to investigate, not proven openings.'],
+  ['risks','Risks & contrary evidence','05','What could challenge your idea.'],
+  ['tests','Your seven-day validation tests','06','Small actions before a big commitment.'],
+  ['unknowns','What is still unknown','07','The missing pieces in this research.']
+];
 function findingCard(item, sources) {
-  const card = element('article', undefined, 'idea-recap');
-  card.append(element('span', `${item.kind.toUpperCase()} · ${item.date || 'Date unknown'}`), element('h4', item.title), element('p', item.detail));
-  if (item.limitation) card.append(element('p', 'Limit: ' + item.limitation));
-  const refs = element('p');
+  const card = element('article', undefined, 'finding-card');
+  const meta = element('div',undefined,'finding-meta');
+  meta.append(element('span',item.kind,'finding-badge '+item.kind.toLowerCase()),element('span',item.date || 'Date unknown','finding-date'));
+  card.append(meta,element('h4', item.title), element('p', item.detail));
+  if (item.limitation) { const note=element('p',undefined,'finding-limit');note.append(element('strong','Context: '),document.createTextNode(item.limitation));card.append(note); }
+  const refs = element('div',undefined,'source-links');
   for (const id of item.sourceIds) {
     const source = sources.find(s => s.id === id);
     if (!source) continue;
-    const link = element('a', `[${id}] ${source.title}`);
-    link.href = source.url; link.target = '_blank'; link.rel = 'noopener noreferrer';
-    refs.append(link, document.createTextNode(' '));
+    const link = element('a', `${id} · ${new URL(source.url).hostname.replace(/^www\./,'')} ↗`);
+    link.title=source.title;link.href=source.url;link.target='_blank';link.rel='noopener noreferrer';refs.append(link);
   }
-  card.append(refs);
+  if (refs.children.length) card.append(refs);
   return card;
 }
 function render(report) {
   lastReport = report;
-  $('#score-value').textContent = report.sources.length;
-  $('#score-ring').style.setProperty('--score', 0);
+  const covered=['competitors','customers','market'].filter(key=>report[key].some(f=>f.kind==='Evidence' && f.sourceIds.length)).length;
+  $('#score-value').textContent=covered;
+  $('#score-ring').style.setProperty('--score',covered/3*100);
+  $('#score-ring').setAttribute('aria-label',`${covered} of 3 research areas contain sourced observations. Not an idea score.`);
+  $('#coverage-copy').textContent=`${covered} of 3 areas have sourced observations: competitors, customers and market. Coverage does not measure evidence quality.`;
+  $('#source-total').textContent=`${report.sources.length} linked sources · No success score`;
   $('#result-title').textContent = report.verdict;
   $('#result-summary').textContent = report.summary;
-  $('#result-kicker').textContent = 'RESEARCH JUDGMENT · NOT A SUCCESS PREDICTION';
+  const verdicts={'Worth testing':['Promising · test first','promising'],'Differentiate first':['Needs work · differentiate','mixed'],'Evidence is limited':['Inconclusive · more evidence needed','limited'],'Reconsider the approach':['Weak case · rethink','weak']};
+  const [label,tone]=verdicts[report.verdict] || verdicts['Evidence is limited'];
+  $('#verdict-level').textContent=label;$('#verdict-level').className='verdict-level '+tone;
+  $('#aside-risk').textContent=report.risks[0]?.title || 'Willingness to pay is unproven';
+  $('#aside-next').textContent=report.tests[0]?.title || 'Speak with prospective buyers';
   $('#idea-recap').textContent = brief().idea;
-  const firstGap = report.gaps[0];
-  $('#strength-title').textContent = firstGap?.title || 'No clear gap established';
-  $('#strength-copy').textContent = firstGap?.detail || 'Research has not established a distinctive opening yet.';
-  const firstRisk = report.risks[0];
-  $('#risk-title').textContent = firstRisk?.title || 'Demand remains unproven';
-  $('#risk-copy').textContent = firstRisk?.detail || 'Public research cannot prove buyers will pay for your product.';
-  // Summary cards are analyst interpretations; the evidence and limitations follow below.
-  $('#test-title').textContent = report.tests[0].title;
-  $('#test-copy').textContent = report.tests[0].action;
-  const details = $('#research-details'); details.replaceChildren();
-  details.append(element('p', `Research run: ${new Date(report.generatedAt).toLocaleString()}. Links show retrieved sources; publication dates may be older. Findings are AI interpretations and should be checked.`, 'field-help'));
-  for (const [key, label] of [['competitors','Competitors & alternatives'],['customers','Customer evidence'],['market','Market signals'],['gaps','Possible gaps to test'],['risks','Risks & contrary evidence']]) {
-    const section = element('section'); section.append(element('h3', label));
-    if (!report[key].length) section.append(element('p','No sufficiently supported findings in this research run.','field-help'));
-    report[key].forEach(item => section.append(findingCard(item, report.sources)));
-    details.append(section);
+  const details=$('#research-details');details.replaceChildren();
+  details.append(element('p',`Researched ${new Date(report.generatedAt).toLocaleString()}. Source publication dates may be older. Check linked sources before deciding.`,'research-timestamp'));
+  const nav=$('#report-nav');nav.replaceChildren(element('p','EXPLORE YOUR REPORT','aside-label'));
+  for(const [key,label,num,description] of reportSections){
+    const section=element('section',undefined,'report-section section-'+key);section.id='report-'+key;
+    const heading=element('header',undefined,'report-section-heading');
+    const text=element('div');const h=element('h3',label);h.id='heading-'+key;section.setAttribute('aria-labelledby',h.id);text.append(h,element('p',description));
+    heading.append(element('span',num,'section-number'),text,element('span',String(report[key].length),'section-count'));section.append(heading);
+    const jump=element('a');jump.href='#report-'+key;jump.append(element('span',label),element('span',String(report[key].length)));nav.append(jump);
+    const grid=element('div',undefined,'findings-grid');
+    if(key==='tests'){
+      grid.append(element('p','Pass / change-course thresholds are proposed decision rules, not statistical proof.','test-note'));
+      report.tests.forEach((test,i)=>{
+        const card=element('article',undefined,'finding-card test-card');card.append(element('span',`EXPERIMENT ${String(i+1).padStart(2,'0')} · THIS WEEK`,'test-kicker'),element('h4',test.title),element('p',test.action));
+        const measure=element('p',undefined,'test-measure');measure.append(element('strong','Measure: '),document.createTextNode(test.measure));card.append(measure);
+        const rules=element('div',undefined,'test-rules');for(const [name,title] of [['pass','Continue if'],['fail','Change course if']]){const rule=element('div',undefined,'test-rule '+name);rule.append(element('strong',title),element('p',test[name]));rules.append(rule);}card.append(rules);grid.append(card);
+      });
+    }else if(key==='unknowns'){
+      const list=element('ul',undefined,'unknown-list');report.unknowns.forEach(x=>list.append(element('li',x)));grid.append(list);
+    }else report[key].forEach(item=>grid.append(findingCard(item,report.sources)));
+    if(!report[key].length)grid.append(element('p','No sufficiently supported findings in this research run.','empty-finding'));
+    section.append(grid);details.append(section);
   }
-  const tests = element('section'); tests.append(element('h3','Your seven-day validation tests'), element('p','These thresholds are proposed decision rules, not statistical proof.','field-help'));
-  report.tests.forEach(test => {
-    const card = element('article',undefined,'idea-recap');
-    card.append(element('h4',test.title),element('p',test.action),element('p','Measure: '+test.measure),element('p','Continue if: '+test.pass),element('p','Change course if: '+test.fail));
-    tests.append(card);
-  });
-  details.append(tests);
-  const unknowns = element('section'); unknowns.append(element('h3','What we still do not know'));
-  const list = element('ul'); report.unknowns.forEach(x => list.append(element('li',x))); unknowns.append(list); details.append(unknowns);
-  details.append(element('p','Public posts are a selective sample. Competitor traction is not proof of your demand. Test willingness to pay with real prospective buyers.','field-help'));
-  form.classList.add('hidden'); results.classList.remove('hidden'); restartButton.classList.remove('hidden');
-  $('#step-label').textContent = 'SOURCE-LINKED RESEARCH';
-  $('#aside-title').textContent = 'Evidence before commitment.';
-  $('#aside-copy').textContent = 'Read what supports the idea, what challenges it, and what to test next.';
-  results.scrollIntoView({behavior:'smooth',block:'start'});
+  details.append(element('p','Public posts are a selective sample. Competitor traction is not proof of your demand. Test willingness to pay with real prospective buyers.','research-timestamp'));
+  form.classList.add('hidden');results.classList.remove('hidden');restartButton.classList.remove('hidden');
+  $('#quiz-shell').classList.add('showing-results');$('#question-aside').classList.add('hidden');$('#verdict-aside').classList.remove('hidden');
+  $('#step-label').textContent='YOUR RESEARCH REPORT';
+  $('#quiz-shell').scrollIntoView({behavior:'smooth',block:'start'});
 }
 async function runResearch() {
   if (busy) return;
@@ -146,6 +160,7 @@ fields.forEach(name => {
   input.addEventListener('input', () => {$('#'+name+'-count').textContent = `${input.value.length} / ${input.maxLength}`; $('#'+name+'-error').textContent = '';});
 });
 restartButton.addEventListener('click', () => {
+  $('#quiz-shell').classList.remove('showing-results');$('#question-aside').classList.remove('hidden');$('#verdict-aside').classList.add('hidden');
   results.classList.add('hidden'); form.classList.remove('hidden'); restartButton.classList.add('hidden'); status.textContent = ''; updateStep(1);
 });
 document.querySelectorAll('[data-start]').forEach(button => button.addEventListener('click', () => {
