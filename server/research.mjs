@@ -40,19 +40,27 @@ export function safeUrl(value) {
 async function providerRequest(provider, url, payload, key, fetcher = fetch) {
   const response = await fetcher(url, { method: 'POST', headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: AbortSignal.timeout(45_000) });
   if (!response.ok) {
-    const code = `${provider.toUpperCase()}_${response.status}`;
+    let errorCode = '';
+    try { const data = await response.json(); const candidate=data.error?.code; if (['json_validate_failed','model_not_found','model_decommissioned','context_length_exceeded','rate_limit_exceeded'].includes(candidate)) errorCode=candidate; } catch {}
+    const code = `${provider.toUpperCase()}_${response.status}${errorCode ? '_' + errorCode : ''}`;
     console.error(JSON.stringify({ event: 'research_provider_failed', code }));
     const message = [401,403].includes(response.status) ? `${provider} rejected access. Check ${provider.toUpperCase()}_API_KEY in Netlify.`
       : [429,432,433].includes(response.status) ? `${provider} usage limit reached. Please retry later or check the provider dashboard.`
       : response.status === 413 ? 'The research exceeds the AI token allowance. Shorten your answers and retry.'
       : `${provider} could not complete this request. Please retry.`;
-    throw new PublicError(`${message} [${code}]`, [429,432,433].includes(response.status) ? 429 : 502);
+    const error = new PublicError(`${message} [${code}]`, [429,432,433].includes(response.status) ? 429 : 502); error.providerCode=errorCode; throw error;
   }
   return response.json();
 }
 export async function callAI(body, key, fetcher) {
   const payload = { model: body.model, messages: [{role:'system',content:body.instructions},{role:'user',content:body.input}], max_completion_tokens: body.max_output_tokens, reasoning_effort:'low', response_format: {type:'json_schema',json_schema:{name:body.text.format.name || 'result',strict:true,schema:body.text.format.schema}} };
-  const response = await providerRequest('Groq', 'https://api.groq.com/openai/v1/chat/completions', payload, key, fetcher);
+  let response;
+  try { response = await providerRequest('Groq', 'https://api.groq.com/openai/v1/chat/completions', payload, key, fetcher); } catch(error) {
+    if (error.providerCode !== 'json_validate_failed') throw error;
+    payload.response_format={type:'json_object'};
+    payload.messages[0].content += '\nReturn only a JSON object matching this schema: ' + JSON.stringify(body.text.format.schema);
+    response = await providerRequest('Groq', 'https://api.groq.com/openai/v1/chat/completions', payload, key, fetcher);
+  }
   if (response.choices?.[0]?.finish_reason !== 'stop' || !response.choices[0].message?.content) throw new PublicError('AI report did not finish. Please retry.', 502);
   return response;
 }
