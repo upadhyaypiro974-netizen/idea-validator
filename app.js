@@ -59,14 +59,18 @@ function element(tag, text, cls) {
   return el;
 }
 const reportSections = [
-  ['competitors','Competitors & alternatives','01','Who already solves this problem?'],
-  ['customers','Customer evidence','02','What people actually say and do.'],
-  ['market','Market signals','03','Demand, timing and adoption barriers.'],
-  ['gaps','Possible gaps to test','04','Hypotheses to investigate, not proven openings.'],
-  ['risks','Risks & contrary evidence','05','What could challenge your idea.'],
-  ['tests','Your seven-day validation tests','06','Small actions before a big commitment.'],
-  ['unknowns','What is still unknown','07','The missing pieces in this research.']
+  ['demand','Problem & demand','01','Is this a real problem, and is there evidence people would pay?'],
+  ['difference','Reason to choose your idea','02','A short check of alternatives and your proposed difference.'],
+  ['risks','What could stop it','03','The biggest risks and assumptions to test.'],
+  ['tests','Your next validation steps','04','Two small tests with clear decision rules.'],
+  ['unknowns','What you still need to prove','05','Missing evidence before you invest more.']
 ];
+function cleanReportText(value, key='') {
+  if (typeof value === 'string') return key === 'url' ? value : value.replace(/[\u2013\u2014]/g, ', ').replace(/\s+,/g, ',');
+  if (Array.isArray(value)) return value.map(x=>cleanReportText(x));
+  if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([k,v])=>[k,cleanReportText(v,k)]));
+  return value;
+}
 function findingCard(item, sources) {
   const card = element('article', undefined, 'finding-card');
   const meta = element('div',undefined,'finding-meta');
@@ -84,7 +88,9 @@ function findingCard(item, sources) {
   return card;
 }
 function render(report) {
+  report = cleanReportText(report);
   lastReport = report;
+  const sections = {...report, demand:[...report.customers,...report.market], difference:[...report.gaps,...report.competitors]};
   const covered=['competitors','customers','market'].filter(key=>report[key].some(f=>f.kind==='Evidence' && f.sourceIds.length)).length;
   $('#score-value').textContent=covered;
   $('#score-ring').style.setProperty('--score',covered/3*100);
@@ -98,7 +104,7 @@ function render(report) {
   $('#verdict-level').textContent=label;$('#verdict-level').className='verdict-level '+tone;
   $('#aside-risk').textContent=report.risks[0]?.title || 'Willingness to pay is unproven';
   $('#aside-next').textContent=report.tests[0]?.title || 'Speak with prospective buyers';
-  $('#idea-recap').textContent = brief().idea;
+  $('#idea-recap').textContent = cleanReportText(brief().idea);
   const details=$('#research-details');details.replaceChildren();
   details.append(element('p',`Researched ${new Date(report.generatedAt).toLocaleString()}. Source publication dates may be older. Check linked sources before deciding.`,'research-timestamp'));
   const nav=$('#report-nav');nav.replaceChildren(element('p','EXPLORE YOUR REPORT','aside-label'));
@@ -106,8 +112,8 @@ function render(report) {
     const section=element('section',undefined,'report-section section-'+key);section.id='report-'+key;
     const heading=element('header',undefined,'report-section-heading');
     const text=element('div');const h=element('h3',label);h.id='heading-'+key;section.setAttribute('aria-labelledby',h.id);text.append(h,element('p',description));
-    heading.append(element('span',num,'section-number'),text,element('span',String(report[key].length),'section-count'));section.append(heading);
-    const jump=element('a');jump.href='#report-'+key;jump.append(element('span',label),element('span',String(report[key].length)));nav.append(jump);
+    heading.append(element('span',num,'section-number'),text,element('span',String(sections[key].length),'section-count'));section.append(heading);
+    const jump=element('a');jump.href='#report-'+key;jump.append(element('span',label),element('span',String(sections[key].length)));nav.append(jump);
     const grid=element('div',undefined,'findings-grid');
     if(key==='tests'){
       grid.append(element('p','Pass / change-course thresholds are proposed decision rules, not statistical proof.','test-note'));
@@ -118,14 +124,14 @@ function render(report) {
       });
     }else if(key==='unknowns'){
       const list=element('ul',undefined,'unknown-list');report.unknowns.forEach(x=>list.append(element('li',x)));grid.append(list);
-    }else report[key].forEach(item=>grid.append(findingCard(item,report.sources)));
-    if(!report[key].length)grid.append(element('p','No sufficiently supported findings in this research run.','empty-finding'));
+    }else sections[key].forEach(item=>grid.append(findingCard(item,report.sources)));
+    if(!sections[key].length)grid.append(element('p','No sufficiently supported findings in this research run.','empty-finding'));
     section.append(grid);details.append(section);
   }
   details.append(element('p','Public posts are a selective sample. Competitor traction is not proof of your demand. Test willingness to pay with real prospective buyers.','research-timestamp'));
   form.classList.add('hidden');results.classList.remove('hidden');restartButton.classList.remove('hidden');
   $('#quiz-shell').classList.add('showing-results');$('#question-aside').classList.add('hidden');$('#verdict-aside').classList.remove('hidden');
-  $('#step-label').textContent='YOUR RESEARCH REPORT';
+  $('#step-label').textContent='YOUR VALIDATION REPORT';
   $('#quiz-shell').scrollIntoView({behavior:'smooth',block:'start'});
 }
 async function runResearch() {
@@ -134,7 +140,7 @@ async function runResearch() {
   if (!savedResearch || savedResearch.fingerprint !== fingerprint || savedResearch.expires < Date.now()) savedResearch = {fingerprint, expires:Date.now()+25*60_000, tracks:{}};
   controller = new AbortController();
   const deadline = setTimeout(() => controller.abort(), 115_000);
-  setBusy(true); status.className = 'field-help'; status.textContent = 'Searching competitors, public customer feedback and market evidence… This can take 1–2 minutes.';
+  setBusy(true); status.className = 'field-help'; status.textContent = 'Checking the problem, demand and existing alternatives… This can take 1-2 minutes.';
   try {
     if (!savedResearch.plan) savedResearch.plan = await request({action:'plan',brief:input});
     const tracks = ['competitors','customers','market'];
@@ -143,7 +149,7 @@ async function runResearch() {
     }));
     const failed = attempts.find(x => x.status === 'rejected');
     if (failed) throw failed.reason;
-    status.textContent = 'Comparing evidence, checking possible gaps and preparing your tests…';
+    status.textContent = 'Assessing your idea and preparing two practical tests…';
     const report = await request({action:'report',brief:input,tokens:tracks.map(t=>savedResearch.tracks[t].token)});
     render(report);
   } catch (error) {
@@ -170,14 +176,14 @@ document.querySelectorAll('[data-start]').forEach(button => button.addEventListe
 }));
 $('#upgrade-button').addEventListener('click', () => {
   if (!lastReport) return;
-  const text = ['IDEAPROOF — MARKET EVIDENCE', lastReport.generatedAt, 'Analyst judgment: '+lastReport.verdict, lastReport.summary];
-  for (const key of ['competitors','customers','market','gaps','risks']) {
+  const text = ['IDEAPROOF ,  MARKET EVIDENCE', lastReport.generatedAt, 'Analyst judgment: '+lastReport.verdict, lastReport.summary];
+  for (const key of ['customers','market','gaps','competitors','risks']) {
     text.push('\n'+key.toUpperCase());
     lastReport[key].forEach(i=>text.push(`${i.title} [${i.kind}; ${i.date}]\n${i.detail}\nLimit: ${i.limitation}\nSources: ${i.sourceIds.join(', ')}`));
   }
   text.push('\nSEVEN-DAY TESTS'); lastReport.tests.forEach(t=>text.push(`${t.title}\n${t.action}\nMeasure: ${t.measure}\nProposed pass: ${t.pass}\nProposed fail: ${t.fail}`));
   text.push('\nUNKNOWNS',...lastReport.unknowns,'\nSOURCES'); lastReport.sources.forEach(s=>text.push(`${s.id}: ${s.title}\n${s.url}`));
-  const url = URL.createObjectURL(new Blob([text.join('\n\n')],{type:'text/plain;charset=utf-8'}));
+  const url = URL.createObjectURL(new Blob([cleanReportText(text.join('\n\n'))],{type:'text/plain;charset=utf-8'}));
   const link = element('a'); link.href=url; link.download='ideaproof-research.txt'; link.click(); setTimeout(()=>URL.revokeObjectURL(url),1000);
 });
 updateStep(1);
