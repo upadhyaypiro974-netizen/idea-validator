@@ -15,7 +15,7 @@ export default async function handler(request) {
     let data;
     try { data = JSON.parse(raw); } catch { throw new PublicError('Invalid JSON.'); }
     const brief = validateBrief(data.brief);
-    const model = ['openai/gpt-oss-20b','openai/gpt-oss-120b'].includes(process.env.GROQ_MODEL) ? process.env.GROQ_MODEL : 'openai/gpt-oss-120b';
+    const model = ['openai/gpt-oss-20b','openai/gpt-oss-120b'].includes(process.env.GROQ_MODEL) ? process.env.GROQ_MODEL : 'openai/gpt-oss-20b';
     if (data.action === 'plan') return json({token:signEvidence(await planResearch(brief,key,model),brief,key)});
     if (data.action === 'research') {
       const plan = verifyEvidence(data.planToken,brief,key);
