@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validateBrief, safeUrl, signEvidence, verifyEvidence, callAI, research, checkReport, synthesize } from '../server/research.mjs';
+import { validateBrief, safeUrl, signEvidence, verifyEvidence, diagnoseProvider, callAI, research, checkReport, synthesize } from '../server/research.mjs';
 import handler from '../netlify/functions/validate.mjs';
 const brief = validateBrief({ idea:'A bilingual missed-call assistant for small dental clinics.', audience:'Small dental clinic owners', geography:'Lucknow, India', alternatives:'Receptionist and WhatsApp', difference:'Hindi and English, ₹3,000/month', evidence:'No customer evidence yet' });
 const key = 'test-only-key';
@@ -48,4 +48,10 @@ test('current model uses Gemini 3 thinking configuration', async () => {
  let payload;
  await callAI({model:'gemini-3.1-flash-lite',instructions:'test',input:'test',max_output_tokens:20},key,async (_url,req)=>{payload=JSON.parse(req.body);return providerResponse({output:[]});});
  assert.deepEqual(payload.generationConfig.thinkingConfig,{thinkingLevel:'low'});
+});
+
+test('diagnostics identify restrictions without exposing keys or user input', () => {
+ const e={status:'PERMISSION_DENIED',message:'private input and secret-value',details:[{reason:'API_KEY_SERVICE_BLOCKED',metadata:{key:'secret-value'}}]};
+ const d=diagnoseProvider(e,403);assert.equal(d.code,'GOOGLE_403_API_KEY_SERVICE_BLOCKED');assert.ok(!JSON.stringify(d).includes('secret-value'));assert.ok(!JSON.stringify(d).includes('private input'));
+ assert.equal(diagnoseProvider({message:'Your project has been denied access'},403).code,'GOOGLE_403_PROJECT_ACCESS_DENIED');
 });

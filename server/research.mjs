@@ -37,6 +37,29 @@ export function safeUrl(value) {
     return url.href;
   } catch { return null; }
 }
+export function diagnoseProvider(error, httpStatus) {
+  const known = new Set(['SERVICE_DISABLED','API_KEY_INVALID','API_KEY_SERVICE_BLOCKED','API_KEY_HTTP_REFERRER_BLOCKED','API_KEY_IP_ADDRESS_BLOCKED','BILLING_DISABLED','CONSUMER_SUSPENDED','ACCESS_TOKEN_SCOPE_INSUFFICIENT','PERMISSION_DENIED','RESOURCE_EXHAUSTED','NOT_FOUND','INVALID_ARGUMENT']);
+  const reasons = (Array.isArray(error?.details) ? error.details : []).map(d => d?.reason).filter(r => known.has(r));
+  const message = String(error?.message || '').toLowerCase();
+  let reason = reasons[0] || (known.has(error?.status) ? error.status : 'UNCLASSIFIED');
+  if (/has not been used|it is disabled|api.*not enabled/.test(message)) reason = 'SERVICE_DISABLED';
+  else if (/reported as leaked/.test(message)) reason = 'KEY_REPORTED_LEAKED';
+  else if (/project has been denied access/.test(message)) reason = 'PROJECT_ACCESS_DENIED';
+  else if (/referer|referrer/.test(message)) reason = 'API_KEY_HTTP_REFERRER_BLOCKED';
+  else if (/billing|paid tier|free tier/.test(message)) reason = 'BILLING_OR_TIER_REQUIRED';
+  const advice = {
+    SERVICE_DISABLED: 'Enable Generative Language API in the Google project linked to this key.',
+    API_KEY_SERVICE_BLOCKED: 'This key does not allow the Generative Language API. Check its API restrictions.',
+    API_KEY_HTTP_REFERRER_BLOCKED: 'This key is restricted to browser websites; the request comes from a Netlify server. Use a server-compatible key restriction.',
+    API_KEY_IP_ADDRESS_BLOCKED: 'The key IP restriction rejects this Netlify server.',
+    PROJECT_ACCESS_DENIED: 'Google has denied this project access. Check Google AI Studio project eligibility or contact Google support.',
+    KEY_REPORTED_LEAKED: 'Google blocked this key as leaked. Replace it in Netlify and redeploy.',
+    BILLING_DISABLED: 'Google reports billing is disabled for the requested service.',
+    BILLING_OR_TIER_REQUIRED: 'Google requires an eligible API tier for this request.',
+    CONSUMER_SUSPENDED: 'Google has suspended API access for this project.'
+  };
+  return { code: `GOOGLE_${httpStatus}_${reason}`, advice: advice[reason] || '' };
+}
 export async function callAI(body, key, fetcher = fetch) {
   const generationConfig = { maxOutputTokens: body.max_output_tokens, thinkingConfig: body.model.startsWith('gemini-2.5-') ? { thinkingBudget: 0 } : { thinkingLevel: 'low' } };
   if (body.text) Object.assign(generationConfig, { responseMimeType: 'application/json', responseJsonSchema: body.text.format.schema });
@@ -58,11 +81,14 @@ export async function callAI(body, key, fetcher = fetch) {
   if (!response.ok) {
     let providerError;
     try { providerError = (await response.json()).error; } catch {}
+    const diagnostic = diagnoseProvider(providerError, response.status);
+    console.error(JSON.stringify({ event: 'gemini_request_failed', diagnosticVersion: 1, ...diagnostic }));
+    if (diagnostic.advice) throw new PublicError(`${diagnostic.advice} [${diagnostic.code}]`, 503);
     const message = String(providerError?.message || '').toLowerCase();
     const reasons = (providerError?.details || []).map(d => d.reason);
     if (reasons.includes('API_KEY_INVALID') || /api key not valid|api key expired|api key.*leaked/.test(message)) throw new PublicError('Gemini rejected the API key. The site owner must replace GEMINI_API_KEY in Netlify and redeploy.', 503);
     if (/billing|paid tier|free tier|not available in your country/.test(message)) throw new PublicError('Google Search research is not available on this Google project tier. The site owner needs an eligible search API plan or a separate search provider.', 503);
-    if (response.status === 401 || response.status === 403) throw new PublicError('Gemini access is denied. Check the API key restrictions and enable the Generative Language API for its Google project.', 503);
+    if (response.status === 401 || response.status === 403) throw new PublicError(`Gemini access is denied. Check the API key restrictions and enable the Generative Language API for its Google project. [${diagnostic.code}]`, 503);
     if (response.status === 404) throw new PublicError('The configured Gemini model is unavailable. The site owner must update GEMINI_MODEL to a supported model.', 503);
     if (response.status === 400) throw new PublicError('Gemini rejected the research configuration (400). Check model compatibility and Google project eligibility.', 502);
     if (response.status === 429) throw new PublicError('Research capacity is temporarily unavailable. Please try again later.', 429);
