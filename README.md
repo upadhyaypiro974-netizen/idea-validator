@@ -3,7 +3,7 @@
 Static UI with server-side Tavily search and Groq evidence analysis on Netlify.
 
 ## Setup
-Set TAVILY_API_KEY and GROQ_API_KEY as secret Netlify environment variables available to Functions in Production. Optional GROQ_MODEL: openai/gpt-oss-20b (default) or openai/gpt-oss-120b. Gemini is no longer used. Redeploy after changing environment variables. Never commit keys or add them to frontend code.
+Set TAVILY_API_KEY and GROQ_API_KEY as secret Netlify environment variables available to Functions in Production. Optional GROQ_MODEL: openai/gpt-oss-120b (default) or openai/gpt-oss-20b. Gemini is no longer used. Redeploy after changing environment variables. Never commit keys or add them to frontend code.
 
 Build: `node build.mjs`. Tests: `node --test tests/*.test.mjs`.
 
