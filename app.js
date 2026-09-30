@@ -93,7 +93,7 @@ function render(report) {
   const sections = {...report, demand:[...report.customers,...report.market], difference:[...report.gaps,...report.competitors]};
   const strengths = {
     'Worth testing': {label:'Strong',fill:80,color:'#34805a',note:'Promising enough to test. Buyer demand still needs validation.'},
-    'Differentiate first': {label:'Medium',fill:50,color:'#b78022',note:'There is potential, but your reason to switch needs work.'},
+    'Differentiate first': {label:'Medium',fill:50,color:'#b78022',note:'There is potential, but demand, differentiation or payment still needs work.'},
     'Reconsider the approach': {label:'Weak',fill:25,color:'#bd5744',note:'The current evidence suggests rethinking the approach.'},
     'Evidence is limited': {label:'Unclear',fill:0,color:'#8b8d84',note:'Not enough evidence to judge how strong this idea is.'}
   };
@@ -103,11 +103,12 @@ function render(report) {
   $('#score-ring').style.setProperty('--score',strength.fill);
   $('#score-ring').style.setProperty('--ring-color',strength.color);
   $('#score-ring').setAttribute('aria-label',`Idea strength: ${strength.label}. ${strength.note} Qualitative rating, not a success percentage.`);
-  $('#coverage-copy').textContent=strength.note + ' The ring shows a qualitative assessment, not a success percentage.';
-  $('#source-total').textContent=`Based on the report verdict · ${report.sources.length} linked sources`;
+  const assessmentReasons = report.assessment ? ['demand','differentiation','payment'].map(key => report.assessment[key]?.reason).filter(Boolean).join(' ') : '';
+  $('#coverage-copy').textContent=strength.note + ' ' + assessmentReasons + ' The ring shows a qualitative assessment, not a success percentage.';
+  $('#source-total').textContent=`Based on demand, differentiation and payment evidence · ${report.sources.length} linked sources`;
   $('#result-title').textContent = report.verdict;
   $('#result-summary').textContent = report.summary;
-  const verdicts={'Worth testing':['Promising · test first','promising'],'Differentiate first':['Needs work · differentiate','mixed'],'Evidence is limited':['Inconclusive · more evidence needed','limited'],'Reconsider the approach':['Weak case · rethink','weak']};
+  const verdicts={'Worth testing':['Promising · test first','promising'],'Differentiate first':['Mixed case · test assumptions','mixed'],'Evidence is limited':['Inconclusive · more evidence needed','limited'],'Reconsider the approach':['Weak case · rethink','weak']};
   const [label,tone]=verdicts[report.verdict] || verdicts['Evidence is limited'];
   $('#verdict-level').textContent=label;$('#verdict-level').className='verdict-level '+tone;
   $('#aside-risk').textContent=report.risks[0]?.title || 'Willingness to pay is unproven';

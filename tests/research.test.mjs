@@ -1,13 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validateBrief, safeUrl, signEvidence, verifyEvidence, planResearch, callAI, research, checkReport, synthesize } from '../server/research.mjs';
+import { validateBrief, safeUrl, signEvidence, verifyEvidence, planResearch, callAI, research, checkReport, assessStrength, synthesize } from '../server/research.mjs';
 import handler from '../netlify/functions/validate.mjs';
 const brief = validateBrief({ idea:'A bilingual missed-call assistant for small dental clinics.', audience:'Small dental clinic owners', geography:'Lucknow, India', alternatives:'Receptionist and WhatsApp', difference:'Hindi and English, ₹3,000/month', evidence:'No customer evidence yet' });
 const key = 'test-only-key';
 const providerResponse = value => Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify(value)}}]});
 const source = { id:'S1',title:'Example pricing',url:'https://example.com/pricing' };
 const finding = { title:'Product offering',detail:'Example sourced detail',kind:'Evidence',sourceIds:['S1'],date:'Date unknown',limitation:'Vendor claim, not proof of demand' };
-const report = () => ({verdict:'Worth testing',summary:'Test the hypothesis',competitors:[{...finding}],customers:[],market:[],gaps:[],risks:[],tests:[{title:'Interview buyers',action:'Ask 5 owners about their last missed call.',measure:'Count owners with a current workaround',pass:'Proposed: 3 describe repeated pain',fail:'Proposed: fewer than 3'}],unknowns:['Willingness to pay']});
+const report = () => ({assessment:Object.fromEntries(['demand','differentiation','payment'].map(k=>[k,{status:'unknown',reason:'Not established',sourceIds:[]}])),verdict:'Worth testing',summary:'Test the hypothesis',competitors:[{...finding}],customers:[],market:[],gaps:[],risks:[],tests:[{title:'Interview buyers',action:'Ask 5 owners about their last missed call.',measure:'Count owners with a current workaround',pass:'Proposed: 3 describe repeated pain',fail:'Proposed: fewer than 3'}],unknowns:['Willingness to pay']});
 test('validates context and bounds',()=>{assert.throws(()=>validateBrief({...brief,idea:'x'})); assert.throws(()=>validateBrief({...brief,evidence:'x'.repeat(1201)}));});
 test('rejects unsafe source URLs',()=>{for(const url of ['javascript:alert(1)','http://localhost','http://127.0.0.1','https://u:p@example.com']) assert.equal(safeUrl(url),null); assert.equal(safeUrl(source.url),source.url);});
 test('evidence is bound to idea, expiry and signature',()=>{const token=signEvidence({track:'market',sources:[source]},brief,key);assert.equal(verifyEvidence(token,brief,key).track,'market');assert.throws(()=>verifyEvidence(token,{...brief,geography:'USA'},key));assert.throws(()=>verifyEvidence(token+'x',brief,key));const now=Date.now;Date.now=()=>now()+31*60_000;try{assert.throws(()=>verifyEvidence(token,brief,key));}finally{Date.now=now;}});
@@ -44,4 +44,31 @@ test('provider failure never exposes raw secrets',async()=>{
 test('empty searches remain empty instead of inventing evidence',async()=>{
  const e=await research('market',brief,key,'test query',async()=>Response.json({results:[]}));assert.equal(e.sources.length,0);
  await assert.rejects(synthesize(brief,[e],key,'openai/gpt-oss-20b'),/No traceable/);
+});
+
+const ratingSources = [source,{id:'S2',url:'https://buyers.example.org/review',title:'Buyer review'}];
+const ratings = statuses => Object.fromEntries(['demand','differentiation','payment'].map((k,i)=>[k,{status:statuses[i],reason:'Relevant evidence with limitations',sourceIds:statuses[i]==='unknown'?[]:[i===1?'S2':'S1']}]));
+test('strength rubric distinguishes strong, medium, weak and unclear',()=>{
+ for(const [statuses,verdict] of [
+  [['supported','supported','supported'],'Worth testing'],
+  [['supported','mixed','unknown'],'Differentiate first'],
+  [['supported','adverse','unknown'],'Differentiate first'],
+  [['supported','adverse','adverse'],'Reconsider the approach'],
+  [['adverse','mixed','unknown'],'Reconsider the approach'],
+  [['unknown','supported','unknown'],'Evidence is limited'],
+  [['unknown','unknown','unknown'],'Evidence is limited']
+ ]) assert.equal(assessStrength(ratings(statuses),ratingSources).verdict,verdict);
+});
+test('uncited ratings cannot produce strong or weak judgments',()=>{
+ const a=ratings(['adverse','adverse','adverse']);for(const x of Object.values(a))x.sourceIds=[];
+ assert.equal(assessStrength(a,ratingSources).verdict,'Evidence is limited');
+ a.demand.sourceIds=['fake'];assert.throws(()=>assessStrength(a,ratingSources),/incomplete/);
+});
+test('multiple pages from one domain cannot produce Strong',()=>{
+ assert.equal(assessStrength(ratings(['supported','supported','supported']),[source,{id:'S2',url:'https://example.com/reviews'}]).verdict,'Differentiate first');
+});
+test('server corrects model verdict and preserves assessment citations',()=>{
+ const r=report();r.assessment=ratings(['supported','mixed','unknown']);
+ const checked=checkReport(r,ratingSources);
+ assert.equal(checked.verdict,'Differentiate first');assert.equal(checked.sources.length,2);
 });
