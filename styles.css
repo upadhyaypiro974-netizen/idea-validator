@@ -369,3 +369,8 @@ a:focus-visible, button:focus-visible { outline:3px solid var(--purple); outline
 .footer-bottom { display:flex; justify-content:space-between; gap:20px; border-top:1px solid #34372f; padding-top:22px; color:#a6ab9d; font-size:11px; line-height:1.6; }
 @media(max-width:860px) { .footer-columns { grid-template-columns:1fr 1fr; gap:28px; }.footer-intro { flex-wrap:wrap; }.footer-intro nav { width:100%; margin:0; } }
 @media(max-width:560px) { .footer-columns { grid-template-columns:1fr; }.footer-bottom { flex-direction:column; gap:8px; } }
+
+.score-ring.strength-ring { background:conic-gradient(var(--ring-color) calc(var(--score) * 1%), #e8e5de 0); }
+.showing-results .strength-ring #score-value { font-size:21px; letter-spacing:-.7px; }
+.strength-ring small { font-size:10px; }
+@media(max-width:560px) { .showing-results .strength-ring #score-value { font-size:16px; letter-spacing:-.3px; }.strength-ring small { font-size:8px; } }

@@ -91,12 +91,20 @@ function render(report) {
   report = cleanReportText(report);
   lastReport = report;
   const sections = {...report, demand:[...report.customers,...report.market], difference:[...report.gaps,...report.competitors]};
-  const covered=['competitors','customers','market'].filter(key=>report[key].some(f=>f.kind==='Evidence' && f.sourceIds.length)).length;
-  $('#score-value').textContent=covered;
-  $('#score-ring').style.setProperty('--score',covered/3*100);
-  $('#score-ring').setAttribute('aria-label',`${covered} of 3 research areas contain sourced observations. Not an idea score.`);
-  $('#coverage-copy').textContent=`${covered} of 3 areas have sourced observations: competitors, customers and market. Coverage does not measure evidence quality.`;
-  $('#source-total').textContent=`${report.sources.length} linked sources · No success score`;
+  const strengths = {
+    'Worth testing': {label:'Strong',fill:80,color:'#34805a',note:'Promising enough to test. Buyer demand still needs validation.'},
+    'Differentiate first': {label:'Medium',fill:50,color:'#b78022',note:'There is potential, but your reason to switch needs work.'},
+    'Reconsider the approach': {label:'Weak',fill:25,color:'#bd5744',note:'The current evidence suggests rethinking the approach.'},
+    'Evidence is limited': {label:'Unclear',fill:0,color:'#8b8d84',note:'Not enough evidence to judge how strong this idea is.'}
+  };
+  const strength = strengths[report.verdict] || strengths['Evidence is limited'];
+  $('#score-value').textContent=strength.label;
+  $('#score-ring').classList.add('strength-ring');
+  $('#score-ring').style.setProperty('--score',strength.fill);
+  $('#score-ring').style.setProperty('--ring-color',strength.color);
+  $('#score-ring').setAttribute('aria-label',`Idea strength: ${strength.label}. ${strength.note} Qualitative rating, not a success percentage.`);
+  $('#coverage-copy').textContent=strength.note + ' The ring shows a qualitative assessment, not a success percentage.';
+  $('#source-total').textContent=`Based on the report verdict · ${report.sources.length} linked sources`;
   $('#result-title').textContent = report.verdict;
   $('#result-summary').textContent = report.summary;
   const verdicts={'Worth testing':['Promising · test first','promising'],'Differentiate first':['Needs work · differentiate','mixed'],'Evidence is limited':['Inconclusive · more evidence needed','limited'],'Reconsider the approach':['Weak case · rethink','weak']};
